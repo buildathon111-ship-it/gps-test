@@ -12,6 +12,9 @@ let markers = [];               // Point markers on the map
 let startPos = null;            // First point (for closing boundary)
 let streetLayer, satelliteLayer;
 let isSatellite = false;
+let followMode = false;       // Auto-center on user position
+let blueDotMarker = null;     // Blue dot marker on map
+let lastPosition = null;      // Last known GPS position
 
 // ===== Constants =====
 const DEFAULT_ZOOM = 18;      // High zoom for field-level view
@@ -28,7 +31,10 @@ function initMap() {
         zoomControl: false,   // We'll position zoom control ourselves
         attributionControl: true,
         zoomSnap: 0.5,
-        zoomDelta: 0.5
+        zoomDelta: 0.5,
+        maxZoom: 25,           // Allow deep manual zoom on satellite image
+        minZoom: 2,
+        zoomAnimation: true
     }).setView([FALLBACK_LAT, FALLBACK_LNG], DEFAULT_ZOOM);
 
     // Add zoom control to bottom-left (away from panel on mobile)
@@ -41,9 +47,13 @@ function initMap() {
     }).addTo(map);
 
     // Satellite layer (Esri World Imagery — free, no API key)
+    // maxNativeZoom=18: Esri has real tiles up to zoom 18
+    // maxZoom=25: beyond 18, Leaflet scales up the zoom-18 tiles
+    // Result: zoom in forever on the same image, just gets pixelated
     satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri',
-        maxZoom: 19,
+        maxZoom: 25,
+        maxNativeZoom: 18,
         detectRetina: true
     });
 
@@ -74,28 +84,55 @@ function initMap() {
 
 // ===== Toggle Satellite / Street Map Layer =====
 function toggleMapLayer() {
-    const floatingBtn = document.getElementById('layerBtn');
-    const panelBtn = document.getElementById('layerToggleBtn');
+    const btn = document.getElementById('layerBtn');
     if (isSatellite) {
         map.removeLayer(satelliteLayer);
         streetLayer.addTo(map);
-        if (floatingBtn) floatingBtn.classList.remove('active-satellite');
-        if (panelBtn) {
-            panelBtn.classList.remove('active-satellite');
-            panelBtn.textContent = '🛰️ Satellite';
-        }
+        btn.classList.remove('active-satellite');
         isSatellite = false;
         addLog('Switched to Street view.', 'info');
     } else {
         map.removeLayer(streetLayer);
         satelliteLayer.addTo(map);
-        if (floatingBtn) floatingBtn.classList.add('active-satellite');
-        if (panelBtn) {
-            panelBtn.classList.add('active-satellite');
-            panelBtn.textContent = '🗺️ Street';
-        }
+        btn.classList.add('active-satellite');
         isSatellite = true;
         addLog('Switched to Satellite view.', 'info');
+    }
+}
+
+// ===== Rover Marker (Google Maps style) =====
+function createRoverIcon() {
+    return L.divIcon({
+        className: 'rover-marker',
+        html: `
+            <div class="rover-body">
+                <div class="rover-beacon"></div>
+                <div class="rover-wheel left"></div>
+                <div class="rover-wheel right"></div>
+            </div>
+            <div class="rover-signal"></div>
+        `,
+        iconSize: [56, 56],
+        iconAnchor: [28, 48]
+    });
+}
+
+function updateBlueDot(lat, lng) {
+    if (!blueDotMarker) {
+        blueDotMarker = L.marker([lat, lng], {
+            icon: createRoverIcon(),
+            interactive: false,
+            zIndexOffset: 1000
+        }).addTo(map);
+    } else {
+        blueDotMarker.setLatLng([lat, lng]);
+    }
+}
+
+function removeBlueDot() {
+    if (blueDotMarker) {
+        map.removeLayer(blueDotMarker);
+        blueDotMarker = null;
     }
 }
 
@@ -171,32 +208,59 @@ function togglePanel() {
     }, 380);
 }
 
-// ===== Center on Me Button =====
+// ===== Locate Me (Google Maps style toggle) =====
+let locateDebounce = false;
+
 function centerOnMe() {
-    if (!navigator.geolocation) {
-        addLog('Geolocation not supported.', 'error');
-        return;
-    }
+    // Prevent rapid taps
+    if (locateDebounce) return;
+    locateDebounce = true;
+    setTimeout(() => { locateDebounce = false; }, 1000);
 
     const btn = document.getElementById('centerBtn');
-    btn.style.transform = 'scale(0.8)';
 
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            const { latitude, longitude } = pos.coords;
-            map.setView([latitude, longitude], TRACKING_ZOOM, {
-                animate: true,
-                duration: 0.5
-            });
-            addLog('Centered on current position.', 'info');
-            btn.style.transform = '';
-        },
-        () => {
-            addLog('Could not get position.', 'error');
-            btn.style.transform = '';
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-    );
+    // Toggle follow mode on/off
+    followMode = !followMode;
+
+    if (followMode) {
+        btn.classList.add('locate-on');
+
+        if (!navigator.geolocation) {
+            addLog('GPS not available on this device.', 'info');
+            followMode = false;
+            btn.classList.remove('locate-on');
+            return;
+        }
+
+        addLog('Follow mode ON — tracking your position.', 'info');
+
+        // Try to get current position
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                lastPosition = { lat: latitude, lng: longitude };
+                updateBlueDot(latitude, longitude);
+                map.setView([latitude, longitude], TRACKING_ZOOM, {
+                    animate: true,
+                    duration: 0.5
+                });
+            },
+            (err) => {
+                // Don't spam log — only tell user once
+                if (err.code === 1) {
+                    addLog('GPS permission denied. Allow location access in browser settings.', 'error');
+                } else {
+                    addLog('GPS signal unavailable. Follow mode is on — it will activate when signal is found.', 'info');
+                }
+                // Keep follow mode ON so it works when signal returns
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
+        );
+    } else {
+        btn.classList.remove('locate-on');
+        removeBlueDot();
+        addLog('Follow mode OFF.', 'info');
+    }
 }
 
 // ===== Panel Touch Drag =====
@@ -304,7 +368,15 @@ function onPositionReceived(position) {
     document.getElementById('latQuick').textContent = latitude.toFixed(4);
     document.getElementById('lngQuick').textContent = longitude.toFixed(4);
 
-    // Smooth zoom & center on current position
+    // Store position for follow mode
+    lastPosition = point;
+
+    // Update blue dot if follow mode is on
+    if (followMode) {
+        updateBlueDot(latitude, longitude);
+    }
+
+    // Smooth zoom & center on current position (always during tracking)
     map.setView([latitude, longitude], TRACKING_ZOOM, {
         animate: true,
         duration: 0.3
@@ -509,6 +581,12 @@ function formatHectares(sqm) {
 function clearAll() {
     // Stop tracking
     stopTracking();
+
+    // Stop follow mode
+    followMode = false;
+    const locateBtn = document.getElementById('centerBtn');
+    if (locateBtn) locateBtn.classList.remove('locate-on');
+    removeBlueDot();
 
     // Remove polygon
     if (boundaryPolygon) {
