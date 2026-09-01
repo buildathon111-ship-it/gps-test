@@ -23,7 +23,7 @@ const FALLBACK_LAT = 20;      // Fallback center (India) if no GPS
 const FALLBACK_LNG = 78;
 
 // ===== Panel State =====
-let panelExpanded = false;
+let panelExpanded = window.innerWidth >= 900;
 
 // ===== Initialize Map =====
 function initMap() {
@@ -78,6 +78,9 @@ function initMap() {
 
     // Initialize touch drag for bottom sheet
     initPanelTouch();
+
+    // Initialize resizable divider
+    initResizeHandle();
 
     addLog('Map initialized.', 'info');
 }
@@ -709,6 +712,68 @@ function addLog(message, type = '') {
     while (container.children.length > 50) {
         container.removeChild(container.firstChild);
     }
+}
+
+// ===== Resizable Panel Divider =====
+let isResizing = false;
+
+function initResizeHandle() {
+    const handle = document.getElementById('resizeHandle');
+    if (!handle) return;
+
+    const panel = document.getElementById('controlPanel');
+    const minPanel = 280;
+    const maxPanel = 600;
+
+    function onPointerDown(e) {
+        e.preventDefault();
+        isResizing = true;
+        handle.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+        if (!isResizing) return;
+        const x = e.clientX;
+        const panelWidth = window.innerWidth - x;
+        const clamped = Math.max(minPanel, Math.min(maxPanel, panelWidth));
+
+        // Update CSS variable for all dependent elements
+        document.documentElement.style.setProperty('--panel-width', clamped + 'px');
+
+        // Also set panel width directly for non-CSS-var targets
+        panel.style.width = clamped + 'px';
+
+        // Reposition map buttons
+        const mapBtns = document.querySelector('.map-buttons');
+        if (mapBtns) {
+            mapBtns.style.right = (clamped + 12) + 'px';
+        }
+
+        // Fix Leaflet map size
+        if (map) {
+            setTimeout(() => map.invalidateSize(), 10);
+        }
+    }
+
+    function onPointerUp() {
+        isResizing = false;
+        handle.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+
+        // Final map invalidate after transition
+        if (map) {
+            setTimeout(() => map.invalidateSize(), 50);
+        }
+    }
+
+    handle.addEventListener('pointerdown', onPointerDown);
 }
 
 // ===== Handle orientation / resize changes =====
