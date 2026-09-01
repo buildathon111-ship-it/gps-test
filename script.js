@@ -63,6 +63,8 @@ function initMap() {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const { latitude, longitude } = pos.coords;
+                lastPosition = { lat: latitude, lng: longitude };
+                updateBlueDot(latitude, longitude);
                 map.setView([latitude, longitude], DEFAULT_ZOOM, {
                     animate: true,
                     duration: 0.5
@@ -103,27 +105,23 @@ function toggleMapLayer() {
     }
 }
 
-// ===== Rover Marker (Google Maps style) =====
-function createRoverIcon() {
+// ===== Position Marker (Black Dot) =====
+function createPositionIcon() {
     return L.divIcon({
-        className: 'rover-marker',
+        className: 'position-marker',
         html: `
-            <div class="rover-body">
-                <div class="rover-beacon"></div>
-                <div class="rover-wheel left"></div>
-                <div class="rover-wheel right"></div>
-            </div>
-            <div class="rover-signal"></div>
+            <div class="position-pulse"></div>
+            <div class="position-dot"></div>
         `,
-        iconSize: [56, 56],
-        iconAnchor: [28, 48]
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
     });
 }
 
 function updateBlueDot(lat, lng) {
     if (!blueDotMarker) {
         blueDotMarker = L.marker([lat, lng], {
-            icon: createRoverIcon(),
+            icon: createPositionIcon(),
             interactive: false,
             zIndexOffset: 1000
         }).addTo(map);
