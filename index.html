@@ -29,10 +29,15 @@
     <!-- Main Map Container -->
     <div id="map"></div>
 
-    <!-- Floating "Center on Me" button (on map, mobile only) -->
-    <button id="centerBtn" class="center-btn" onclick="centerOnMe()" title="Center on my location">
-        📍
-    </button>
+    <!-- Floating Map Controls (on map) -->
+    <div class="map-buttons">
+        <button id="centerBtn" class="center-btn" onclick="centerOnMe()" title="Center on my location">
+            📍
+        </button>
+        <button id="layerBtn" class="layer-btn" onclick="toggleMapLayer()" title="Toggle satellite/street map">
+            🛰️
+        </button>
+    </div>
 
     <!-- Bottom Sheet Panel (Mobile) / Side Panel (Desktop) -->
     <div id="controlPanel" class="control-panel">
@@ -44,6 +49,10 @@
         <!-- Quick Stats Row (visible in collapsed mode on mobile) -->
         <div class="quick-stats">
             <div class="quick-stat">
+                <span class="quick-label">Status</span>
+                <span id="gpsStatusQuick" class="quick-value gps-off">OFF</span>
+            </div>
+            <div class="quick-stat">
                 <span class="quick-label">Lat</span>
                 <span id="latQuick" class="quick-value">--</span>
             </div>
@@ -54,10 +63,6 @@
             <div class="quick-stat">
                 <span class="quick-label">Area</span>
                 <span id="areaQuick" class="quick-value highlight">--</span>
-            </div>
-            <div class="quick-stat">
-                <span class="quick-label">Pts</span>
-                <span id="ptsQuick" class="quick-value">0</span>
             </div>
         </div>
 
@@ -105,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- Action Buttons (2x2 grid on mobile) -->
+            <!-- Action Buttons -->
             <div class="button-grid">
                 <button id="startBtn" class="btn btn-start" onclick="toggleTracking()">
                     ▶ Start
@@ -113,13 +118,20 @@
                 <button id="finishBtn" class="btn btn-finish" onclick="finishBoundary()" disabled>
                     ✓ Finish
                 </button>
-                <button id="clearBtn" class="btn btn-clear" onclick="clearAll()">
-                    ✕ Clear
+                <button id="importBtn" class="btn btn-import" onclick="document.getElementById('importFile').click()">
+                    📂 Import
                 </button>
                 <button id="exportBtn" class="btn btn-export" onclick="exportBoundary()" disabled>
                     📥 Export
                 </button>
+                <button id="layerToggleBtn" class="btn btn-layer" onclick="toggleMapLayer()">
+                    🛰️ Satellite
+                </button>
+                <button id="clearBtn" class="btn btn-clear" onclick="clearAll()">
+                    ✕ Clear
+                </button>
             </div>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBoundary(event)" />
 
             <!-- Status Log -->
             <div class="info-card log-card">

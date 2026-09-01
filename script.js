@@ -10,6 +10,8 @@ let pathPolyline = null;        // Line showing current path
 let boundaryPolygon = null;     // Filled polygon when boundary is closed
 let markers = [];               // Point markers on the map
 let startPos = null;            // First point (for closing boundary)
+let streetLayer, satelliteLayer;
+let isSatellite = false;
 
 // ===== Constants =====
 const DEFAULT_ZOOM = 18;      // High zoom for field-level view
@@ -32,11 +34,18 @@ function initMap() {
     // Add zoom control to bottom-left (away from panel on mobile)
     L.control.zoom({ position: 'topleft' }).addTo(map);
 
-    // OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Street map layer (OpenStreetMap)
+    streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19
     }).addTo(map);
+
+    // Satellite layer (Esri World Imagery — free, no API key)
+    satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 19,
+        detectRetina: true
+    });
 
     // Immediately try to zoom to current location
     if (navigator.geolocation) {
@@ -61,6 +70,93 @@ function initMap() {
     initPanelTouch();
 
     addLog('Map initialized.', 'info');
+}
+
+// ===== Toggle Satellite / Street Map Layer =====
+function toggleMapLayer() {
+    const floatingBtn = document.getElementById('layerBtn');
+    const panelBtn = document.getElementById('layerToggleBtn');
+    if (isSatellite) {
+        map.removeLayer(satelliteLayer);
+        streetLayer.addTo(map);
+        if (floatingBtn) floatingBtn.classList.remove('active-satellite');
+        if (panelBtn) {
+            panelBtn.classList.remove('active-satellite');
+            panelBtn.textContent = '🛰️ Satellite';
+        }
+        isSatellite = false;
+        addLog('Switched to Street view.', 'info');
+    } else {
+        map.removeLayer(streetLayer);
+        satelliteLayer.addTo(map);
+        if (floatingBtn) floatingBtn.classList.add('active-satellite');
+        if (panelBtn) {
+            panelBtn.classList.add('active-satellite');
+            panelBtn.textContent = '🗺️ Street';
+        }
+        isSatellite = true;
+        addLog('Switched to Satellite view.', 'info');
+    }
+}
+
+// ===== Import Boundary from JSON =====
+function importBoundary(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            const points = data.boundary;
+
+            if (!Array.isArray(points) || points.length < 3) {
+                addLog('Invalid file: need at least 3 boundary points.', 'error');
+                return;
+            }
+
+            // Clear any existing boundary first
+            clearAllSilent();
+
+            // Load the imported points
+            boundaryPoints = points.map(p => ({ lat: p.lat, lng: p.lng }));
+
+            // Add markers and draw
+            boundaryPoints.forEach(p => addPointMarker(p));
+            drawPath();
+
+            // Update all UI
+            document.getElementById('pointCount').textContent = boundaryPoints.length;
+            document.getElementById('ptsQuick').textContent = boundaryPoints.length;
+            updateDistance();
+
+            // Auto-close into polygon
+            finishBoundary();
+
+            const area = data.area ? data.area.squareMeters : calculateArea(boundaryPoints);
+            addLog(`Imported boundary: ${points.length} points, ${formatArea(area)}`, 'success');
+            if (data.timestamp) {
+                addLog(`Original timestamp: ${data.timestamp}`, 'info');
+            }
+        } catch (err) {
+            addLog('Failed to parse JSON file: ' + err.message, 'error');
+        }
+    };
+    reader.readAsText(file);
+
+    // Reset input so the same file can be re-imported
+    event.target.value = '';
+}
+
+// ===== Silent Clear (no log spam, used by import) =====
+function clearAllSilent() {
+    stopTracking();
+    if (boundaryPolygon) { map.removeLayer(boundaryPolygon); boundaryPolygon = null; }
+    if (pathPolyline) { map.removeLayer(pathPolyline); pathPolyline = null; }
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    boundaryPoints = [];
+    startPos = null;
 }
 
 // ===== Bottom Sheet Toggle =====
@@ -368,6 +464,8 @@ function finishBoundary() {
 
     addLog(`Boundary closed! Area: ${formatArea(area)} (${formatHectares(area)})`, 'success');
     addLog(`Total points: ${boundaryPoints.length}`, 'info');
+
+    return area;
 }
 
 // ===== Calculate Polygon Area (Shoelace formula on projected coords) =====
@@ -492,6 +590,7 @@ function updateUI(isTracking) {
     const startBtn = document.getElementById('startBtn');
     const finishBtn = document.getElementById('finishBtn');
     const statusBadge = document.getElementById('connectionStatus');
+    const gpsQuick = document.getElementById('gpsStatusQuick');
 
     if (isTracking) {
         startBtn.textContent = '■ Stop';
@@ -499,12 +598,20 @@ function updateUI(isTracking) {
         finishBtn.disabled = false;
         statusBadge.textContent = 'GPS ON';
         statusBadge.className = 'status-badge status-on';
+        if (gpsQuick) {
+            gpsQuick.textContent = 'ON';
+            gpsQuick.className = 'quick-value gps-on';
+        }
     } else {
         startBtn.textContent = '▶ Start';
         startBtn.classList.remove('active');
         finishBtn.disabled = true;
         statusBadge.textContent = 'GPS OFF';
         statusBadge.className = 'status-badge status-off';
+        if (gpsQuick) {
+            gpsQuick.textContent = 'OFF';
+            gpsQuick.className = 'quick-value gps-off';
+        }
     }
 }
 

@@ -104,11 +104,20 @@ body {
     z-index: 1;
 }
 
-/* ===== Floating Center Button ===== */
-.center-btn {
+/* ===== Floating Map Buttons Container ===== */
+.map-buttons {
     position: fixed;
-    bottom: 200px;
     right: 12px;
+    bottom: 200px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    z-index: 1001;
+}
+
+/* ===== Floating Center Button ===== */
+.center-btn,
+.layer-btn {
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -118,18 +127,42 @@ body {
     -webkit-backdrop-filter: blur(8px);
     font-size: 20px;
     cursor: pointer;
-    z-index: 999;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.15);
     transition: transform 0.2s, background 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.center-btn:active,
+.layer-btn:active {
+    transform: scale(0.9);
+}
+
+.center-btn {
+    background: rgba(26, 26, 46, 0.9);
 }
 
 .center-btn:active {
-    transform: scale(0.9);
     background: rgba(74, 222, 128, 0.3);
+}
+
+.layer-btn {
+    background: rgba(26, 26, 46, 0.9);
+}
+
+.layer-btn:active {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.layer-btn.active-satellite {
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
 }
 
 /* ===== Bottom Sheet Panel (Mobile Default) ===== */
@@ -210,6 +243,15 @@ body {
 
 .quick-value.highlight {
     color: #4ade80;
+}
+
+.quick-value.gps-off {
+    color: #ef4444;
+}
+
+.quick-value.gps-on {
+    color: #4ade80;
+    animation: pulse-green 2s infinite;
 }
 
 /* ===== Panel Expandable Content ===== */
@@ -371,6 +413,20 @@ body {
     color: white;
 }
 
+.btn-import {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.btn-layer {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+}
+
+.btn-layer.active-satellite {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
 /* ===== Log ===== */
 .log-card {
     min-height: 80px;
@@ -460,9 +516,13 @@ body {
         font-size: 11px;
     }
 
-    .center-btn {
+    .map-buttons {
         right: 16px;
         bottom: 220px;
+    }
+
+    .map-buttons .center-btn,
+    .map-buttons .layer-btn {
         width: 52px;
         height: 52px;
         font-size: 22px;
@@ -513,7 +573,7 @@ body {
         font-size: 20px;
     }
 
-    .center-btn {
+    .map-buttons {
         display: none;
     }
 
@@ -607,7 +667,7 @@ body {
         max-height: 90vh;
     }
 
-    .center-btn {
+    .map-buttons {
         bottom: 150px;
     }
 
