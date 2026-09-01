@@ -613,7 +613,7 @@ body {
 }
 
 /* ============================================
-   TABLET (≥600px)
+   TABLET (600px–899px) — Side panel with resize
    ============================================ */
 @media (min-width: 600px) {
     .header {
@@ -621,50 +621,51 @@ body {
         padding: 0 20px;
     }
 
-    .header h1 {
-        font-size: 19px;
-    }
-
-    .logo {
-        font-size: 28px;
-    }
-
-    .status-badge {
-        padding: 6px 14px;
-        font-size: 11px;
-    }
-
-    .map-buttons {
-        right: 14px;
-        top: 14px;
-    }
-
-    .map-buttons .center-btn,
-    .map-buttons .layer-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 21px;
-    }
+    .header h1 { font-size: 19px; }
+    .logo { font-size: 28px; }
+    .status-badge { padding: 6px 14px; font-size: 11px; }
 
     .control-panel {
         left: auto;
         right: 0;
-        width: 340px;
-        max-height: 70vh;
-        border-radius: 24px 24px 0 0;
+        width: var(--panel-width, 340px);
+        max-height: none;
+        height: auto;
+        border-radius: 0;
         border-left: 1px solid rgba(148, 163, 184, 0.08);
+        border-top: none;
+        overflow-y: auto;
+    }
+
+    .control-panel .panel-content {
+        display: flex !important;
+    }
+
+    .panel-handle { display: none; }
+    .quick-stats { display: none; }
+
+    #map {
+        right: var(--panel-width, 340px);
+        top: 56px;
+        bottom: 0;
+    }
+
+    .map-buttons {
+        right: calc(var(--panel-width, 340px) + 12px);
+        top: 68px;
     }
 
     .resize-handle {
         display: block;
         position: fixed;
-        top: 60px;
+        top: 56px;
         bottom: 0;
+        right: var(--panel-width, 340px);
         width: 6px;
-        background: rgba(148, 163, 184, 0.1);
+        background: rgba(148, 163, 184, 0.08);
         cursor: col-resize;
         z-index: 1001;
-        transition: background 0.2s ease;
+        transition: background 0.15s ease;
     }
 
     .resize-handle:hover,
@@ -680,9 +681,9 @@ body {
         transform: translate(-50%, -50%);
         width: 2px;
         height: 40px;
-        background: rgba(148, 163, 184, 0.3);
+        background: rgba(148, 163, 184, 0.2);
         border-radius: 1px;
-        transition: height 0.2s ease;
+        transition: all 0.15s ease;
     }
 
     .resize-handle:hover::after,
@@ -691,26 +692,14 @@ body {
         background: rgba(59, 130, 246, 0.7);
     }
 
-    .control-panel.expanded {
-        max-height: calc(100vh - 56px);
-        max-height: calc(100dvh - 56px);
-    }
-
-    #map {
-        right: 340px;
-    }
-
-    .stat-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .log-container {
-        max-height: 160px;
-    }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .log-container { max-height: 160px; }
+    .btn { font-size: 12px; }
+    .info-card { padding: 14px; }
 }
 
 /* ============================================
-   DESKTOP (≥900px)
+   DESKTOP (≥900px) — Wider panel default
    ============================================ */
 @media (min-width: 900px) {
     .header {
@@ -718,104 +707,38 @@ body {
         padding: 0 28px;
     }
 
-    .header h1 {
-        font-size: 21px;
-    }
-
-    .logo {
-        font-size: 30px;
-    }
+    .header h1 { font-size: 21px; }
+    .logo { font-size: 30px; }
 
     .control-panel {
-        position: fixed;
-        top: 60px;
-        right: 0;
-        bottom: 0;
-        left: auto;
-        width: 600px;
-        max-height: none;
-        height: auto;
-        border-radius: 0;
-        border-left: 1px solid rgba(148, 163, 184, 0.08);
-        border-top: none;
-        overflow-y: auto;
-        box-shadow: -4px 0 32px rgba(0, 0, 0, 0.3);
+        width: var(--panel-width, 600px);
     }
 
-    .control-panel .panel-content {
-        display: flex !important;
-    }
+    #map { top: 60px; }
+    .map-buttons { top: 72px; }
+    .resize-handle { top: 60px; }
 
-    .panel-handle {
-        display: none;
-    }
-
-    .quick-stats {
-        display: none;
-    }
-
-    #map {
-        right: var(--panel-width, 600px);
-        top: 60px;
-        bottom: 0;
-    }
-
-    .map-buttons {
-        right: calc(var(--panel-width, 600px) + 12px);
-        top: 72px;
-    }
-
-    .resize-handle {
-        right: var(--panel-width, 600px);
-        top: 60px;
-    }
-
-    .btn {
-        font-size: 13px;
-        padding: 14px 20px;
-    }
-
-    .info-card {
-        padding: 18px;
-    }
-
-    .info-card h3 {
-        font-size: 12px;
-    }
-
-    .coord-value {
-        font-size: 14px;
-    }
-
-    .stat-value {
-        font-size: 17px;
-    }
-
-    .log-container {
-        max-height: 200px;
-    }
-
-    .log-entry {
-        font-size: 11px;
-    }
+    .btn { font-size: 13px; padding: 14px 20px; }
+    .info-card { padding: 18px; }
+    .info-card h3 { font-size: 12px; }
+    .coord-value { font-size: 14px; }
+    .stat-value { font-size: 17px; }
+    .log-container { max-height: 200px; }
+    .log-entry { font-size: 11px; }
 }
 
 /* ============================================
-   LANDSCAPE (Mobile)
+   LANDSCAPE (Mobile — short screens)
    ============================================ */
 @media (max-height: 500px) and (orientation: landscape) {
     .header {
-        height: 42px;
+        height: 40px;
         padding: 0 12px;
     }
 
-    .logo {
-        font-size: 20px;
-    }
-
-    .header h1 {
-        font-size: 15px;
-    }
+    .logo { font-size: 18px; }
+    .header h1 { font-size: 14px; }
+    .status-badge { font-size: 9px; padding: 3px 8px; }
 
     .control-panel {
         max-height: 55vh;
@@ -826,19 +749,23 @@ body {
         max-height: 92vh;
     }
 
-    .stat-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
+    .stat-grid { grid-template-columns: repeat(4, 1fr); }
+    .button-grid { grid-template-columns: repeat(3, 1fr); }
+    .btn { padding: 8px 6px; font-size: 10px; min-height: 38px; border-radius: 10px; }
+    .coord-value { font-size: 11px; }
+    .stat-value { font-size: 13px; }
+    .info-card { padding: 10px; }
+    .info-card h3 { font-size: 10px; margin-bottom: 8px; }
+}
 
-    .button-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    .btn {
-        padding: 10px 8px;
-        font-size: 11px;
-        min-height: 42px;
-    }
+/* ============================================
+   LARGE DESKTOP (≥1200px) — Extra spacious
+   ============================================ */
+@media (min-width: 1200px) {
+    .control-panel { width: var(--panel-width, 600px); }
+    .btn { font-size: 14px; padding: 16px 24px; }
+    .stat-value { font-size: 18px; }
+    .coord-value { font-size: 15px; }
 }
 
 /* ============================================
@@ -846,39 +773,54 @@ body {
    ============================================ */
 @media (max-width: 360px) {
     .header {
-        height: 46px;
+        height: 44px;
         padding: 0 10px;
     }
 
-    .header h1 {
-        font-size: 15px;
-    }
+    .header h1 { font-size: 14px; }
+    .logo { font-size: 20px; }
+    .status-badge { font-size: 9px; padding: 3px 8px; }
 
-    .quick-value {
-        font-size: 10px;
-    }
-
-    .stat-value {
-        font-size: 14px;
-    }
-
-    .stat-cell.highlight .stat-value {
-        font-size: 15px;
-    }
-
-    .btn {
-        padding: 12px 8px;
-        font-size: 10px;
+    .map-buttons .center-btn,
+    .map-buttons .layer-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 17px;
         border-radius: 12px;
     }
 
-    .coord-value {
-        font-size: 11px;
+    .quick-value { font-size: 10px; }
+    .quick-label { font-size: 8px; }
+    .stat-value { font-size: 14px; }
+    .stat-cell.highlight .stat-value { font-size: 15px; }
+    .stat-cell { padding: 8px 6px; }
+
+    .btn {
+        padding: 12px 6px;
+        font-size: 10px;
+        border-radius: 12px;
+        min-height: 44px;
     }
 
-    .button-grid {
-        gap: 8px;
-    }
+    .coord-value { font-size: 11px; }
+    .coord-label { font-size: 9px; }
+    .button-grid { gap: 6px; }
+    .info-card { padding: 10px; border-radius: 12px; }
+    .info-card h3 { font-size: 10px; margin-bottom: 8px; }
+    .panel-content { gap: 8px; padding: 0 10px 14px; }
+}
+
+/* ============================================
+   EXTRA SMALL (≤320px) — Old phones
+   ============================================ */
+@media (max-width: 320px) {
+    .header h1 { font-size: 13px; }
+    .logo { font-size: 18px; }
+    .quick-stats { padding: 2px 8px 8px; }
+    .quick-stat { gap: 1px; }
+    .btn { font-size: 9px; min-height: 40px; }
+    .stat-grid { gap: 6px; }
+    .coord-grid { gap: 6px; }
 }
 
 /* ============================================
