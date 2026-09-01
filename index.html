@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>AgriRover - GPS Boundary Mapper</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Our styles -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <!-- Header Bar (slim on mobile) -->
+    <header class="header">
+        <div class="header-left">
+            <span class="logo">🌾</span>
+            <h1>AgriRover</h1>
+        </div>
+        <div class="header-right">
+            <span id="connectionStatus" class="status-badge status-off">GPS OFF</span>
+        </div>
+    </header>
+
+    <!-- Main Map Container -->
+    <div id="map"></div>
+
+    <!-- Floating "Center on Me" button (on map, mobile only) -->
+    <button id="centerBtn" class="center-btn" onclick="centerOnMe()" title="Center on my location">
+        📍
+    </button>
+
+    <!-- Bottom Sheet Panel (Mobile) / Side Panel (Desktop) -->
+    <div id="controlPanel" class="control-panel">
+        <!-- Drag Handle (mobile only) -->
+        <div class="panel-handle" onclick="togglePanel()">
+            <div class="handle-bar"></div>
+        </div>
+
+        <!-- Quick Stats Row (visible in collapsed mode on mobile) -->
+        <div class="quick-stats">
+            <div class="quick-stat">
+                <span class="quick-label">Lat</span>
+                <span id="latQuick" class="quick-value">--</span>
+            </div>
+            <div class="quick-stat">
+                <span class="quick-label">Lng</span>
+                <span id="lngQuick" class="quick-value">--</span>
+            </div>
+            <div class="quick-stat">
+                <span class="quick-label">Area</span>
+                <span id="areaQuick" class="quick-value highlight">--</span>
+            </div>
+            <div class="quick-stat">
+                <span class="quick-label">Pts</span>
+                <span id="ptsQuick" class="quick-value">0</span>
+            </div>
+        </div>
+
+        <!-- Expandable Content -->
+        <div class="panel-content">
+            <!-- Coordinates Display -->
+            <div class="info-card">
+                <h3>📍 Current Position</h3>
+                <div class="coord-grid">
+                    <div class="coord-cell">
+                        <span class="coord-label">Latitude</span>
+                        <span id="latDisplay" class="coord-value">--</span>
+                    </div>
+                    <div class="coord-cell">
+                        <span class="coord-label">Longitude</span>
+                        <span id="lngDisplay" class="coord-value">--</span>
+                    </div>
+                    <div class="coord-cell">
+                        <span class="coord-label">Accuracy</span>
+                        <span id="accuracyDisplay" class="coord-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Card -->
+            <div class="info-card">
+                <h3>📐 Boundary Stats</h3>
+                <div class="stat-grid">
+                    <div class="stat-cell">
+                        <span class="stat-value" id="pointCount">0</span>
+                        <span class="stat-label">Points</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-value" id="totalDistance">0 m</span>
+                        <span class="stat-label">Distance</span>
+                    </div>
+                    <div class="stat-cell highlight">
+                        <span class="stat-value" id="totalArea">0 m²</span>
+                        <span class="stat-label">Area</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-value" id="totalAreaHa">0 ha</span>
+                        <span class="stat-label">Hectares</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons (2x2 grid on mobile) -->
+            <div class="button-grid">
+                <button id="startBtn" class="btn btn-start" onclick="toggleTracking()">
+                    ▶ Start
+                </button>
+                <button id="finishBtn" class="btn btn-finish" onclick="finishBoundary()" disabled>
+                    ✓ Finish
+                </button>
+                <button id="clearBtn" class="btn btn-clear" onclick="clearAll()">
+                    ✕ Clear
+                </button>
+                <button id="exportBtn" class="btn btn-export" onclick="exportBoundary()" disabled>
+                    📥 Export
+                </button>
+            </div>
+
+            <!-- Status Log -->
+            <div class="info-card log-card">
+                <h3>📋 Log</h3>
+                <div id="logContainer" class="log-container">
+                    <div class="log-entry">Ready. Tap "Start" to begin tracking.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Our script -->
+    <script src="script.js"></script>
+</body>
+</html>
