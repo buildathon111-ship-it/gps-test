@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import './Navbar.css';
 
 function Navbar() {
@@ -9,9 +9,9 @@ function Navbar() {
                 <h1>AgriRover</h1>
             </div>
             <nav className="navbar-links">
-                <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                    Map Tracking
-                </NavLink>
+                <Link to="/" className="nav-link">
+                    ← Back to Dashboard
+                </Link>
             </nav>
         </header>
     );
