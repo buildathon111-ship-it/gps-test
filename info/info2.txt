@@ -1,0 +1,751 @@
+PROJECT: AGRIVISION — Automatic Agricultural Field Boundary Mapping & Digital Twin Calibration
+
+GOAL
+Build a standalone, browser-based prototype for AGRIVISION that can take GPS coordinates collected while an agricultural rover travels around the boundary of a farm, clean and process the GPS data, reconstruct the field boundary, calculate the covered area, and display a clean digital representation of the agricultural land.
+
+This is the second major software module of AGRIVISION.
+
+The real GPS module is NOT available yet, so the system must initially work with simulated GPS data. The architecture must later allow the simulated GPS source to be replaced by the real ESP32 + GPS telemetry without changing the processing pipeline.
+
+==================================================
+STRICT FILE REQUIREMENT
+==================================================
+
+Use ONLY:
+
+1. index.html
+2. style.css
+3. script.js
+
+Do NOT create:
+
+- React
+- Next.js
+- Vue
+- Python
+- Node.js
+- Express
+- TypeScript
+- Backend
+- Database
+- Additional HTML/CSS/JS files
+- Build tools
+
+Everything must run in a modern browser.
+
+External browser-compatible libraries may be loaded through CDN if genuinely necessary.
+
+==================================================
+CORE CONCEPT
+==================================================
+
+AGRIVISION should support an initial "FIELD CALIBRATION / MAPPING RUN".
+
+The farmer places the rover at the desired home/base position.
+
+The rover then travels around the boundary of the agricultural field.
+
+During this run, GPS coordinates are continuously collected:
+
+Latitude
+Longitude
+Timestamp
+GPS accuracy if available
+
+Example:
+
+P1 → P2 → P3 → P4 → P5 → P1
+
+The software must convert this raw GPS trajectory into a clean field boundary polygon.
+
+Pipeline:
+
+RAW GPS DATA
+      ↓
+Validation
+      ↓
+Coordinate sanity checks
+      ↓
+Duplicate removal
+      ↓
+Impossible-jump detection
+      ↓
+GPS noise/outlier filtering
+      ↓
+Trajectory smoothing
+      ↓
+Point simplification
+      ↓
+Boundary reconstruction
+      ↓
+Polygon closure
+      ↓
+Area calculation
+      ↓
+Perimeter calculation
+      ↓
+Digital Twin / Field Map
+
+==================================================
+IMPORTANT GPS REALITY
+==================================================
+
+Do NOT assume GPS coordinates are perfectly accurate.
+
+Consumer GPS can contain noise, sudden jumps and inaccurate points.
+
+The system must therefore be designed to handle:
+
+- noisy coordinates
+- duplicate coordinates
+- sudden unrealistic jumps
+- very small movements
+- GPS accuracy changes
+- temporary GPS glitches
+- missing coordinates
+- irregular sampling intervals
+
+Do NOT simply connect every raw GPS point and call that the field boundary.
+
+The resulting boundary should be visually clean and stable.
+
+==================================================
+GPS INPUT ABSTRACTION
+==================================================
+
+Create a clean GPS data-source abstraction.
+
+Conceptually:
+
+GPS Source
+    ↓
+GPS Point Stream
+    ↓
+Processing Pipeline
+
+Implement two sources:
+
+1. SIMULATED GPS SOURCE
+2. REAL GPS SOURCE INTERFACE / PLACEHOLDER
+
+For now, only the simulator needs to function.
+
+The real GPS source should have a clearly defined interface so that later we can connect:
+
+NEO-6M / GPS module
+        ↓
+ESP32
+        ↓
+Telemetry
+        ↓
+This same GPS processing pipeline
+
+The downstream processing code must not care whether the coordinates came from the simulator or real hardware.
+
+==================================================
+SIMULATED FIELD MAPPING
+==================================================
+
+Create a realistic GPS simulator.
+
+The simulator should generate GPS points representing a rover travelling around a field boundary.
+
+Support different field shapes such as:
+
+- rectangle
+- irregular polygon
+- roughly rectangular field
+- curved/irregular boundary
+
+Add realistic GPS noise to the simulated coordinates.
+
+For example:
+
+TRUE BOUNDARY
+      ↓
+GPS simulator
+      ↓
+Noisy GPS points
+      ↓
+Processing pipeline
+      ↓
+Clean reconstructed boundary
+
+The simulator should allow us to intentionally introduce:
+
+- random GPS noise
+- occasional outliers
+- duplicate points
+- missing points
+- small coordinate jitter
+
+This is important because we want to test whether our filtering pipeline actually works.
+
+==================================================
+MAPPING SESSION
+==================================================
+
+Create a mapping-session interface.
+
+Example:
+
+FIELD CALIBRATION
+
+Status:
+READY
+
+[ START MAPPING ]
+
+When started:
+
+Status:
+MAPPING ACTIVE ●
+
+Show:
+
+GPS points collected: 0
+Distance travelled: 0 m
+GPS accuracy: --
+Elapsed time: 00:00
+
+As simulated points arrive, update these values live.
+
+Provide:
+
+[ PAUSE ]
+[ RESUME ]
+[ FINISH MAPPING ]
+[ RESET ]
+
+==================================================
+HOME / BASE POSITION
+==================================================
+
+When mapping starts, save the first valid GPS coordinate as:
+
+HOME POSITION
+
+Store:
+
+homeLatitude
+homeLongitude
+
+Display it clearly.
+
+Example:
+
+HOME POSITION
+12.971620
+77.594580
+
+Later this will be used by the rover's return-to-base functionality.
+
+==================================================
+GPS DATA VALIDATION
+==================================================
+
+Implement validation before using a point.
+
+Reject points when:
+
+- latitude is invalid
+- longitude is invalid
+- coordinates are missing
+- coordinates are outside valid geographic ranges
+- timestamp is invalid when required
+- movement between points is physically implausible
+
+Do NOT silently discard data.
+
+Keep useful processing statistics such as:
+
+Raw points: 500
+Valid points: 481
+Rejected points: 19
+Filtered points: 463
+
+==================================================
+OUTLIER / JUMP DETECTION
+==================================================
+
+Detect unrealistic GPS jumps.
+
+Example:
+
+Point A
+↓
+Point B
+↓
+Point C
+
+If B suddenly appears hundreds of metres away from A and C while the rover is supposed to be moving slowly, treat it as a potential GPS outlier.
+
+Use configurable thresholds.
+
+Make these thresholds clearly defined in the code so they can later be tuned using real NEO-6M data.
+
+Do not assume one perfect threshold will work for every deployment.
+
+==================================================
+SMOOTHING
+==================================================
+
+Implement a reasonable GPS trajectory smoothing approach.
+
+The objective is:
+
+RAW:
+
+• •   •
+  • •
+•    •  •
+   •
+      •
+
+↓
+
+SMOOTHED:
+
+────────────
+            │
+            │
+            └────────
+
+The exact algorithm can be chosen appropriately, but keep it understandable and modular.
+
+Do not over-engineer the first version.
+
+==================================================
+POINT SIMPLIFICATION
+==================================================
+
+After filtering and smoothing, reduce unnecessary points while preserving the shape of the field.
+
+The final polygon should not contain thousands of unnecessary points if a smaller number can represent the same boundary accurately.
+
+Keep:
+
+Raw GPS points
+
+separate from:
+
+Processed boundary points.
+
+==================================================
+BOUNDARY RECONSTRUCTION
+==================================================
+
+Generate a clean closed polygon from the processed rover trajectory.
+
+The final polygon should:
+
+- follow the rover's actual surveyed path
+- be closed
+- avoid obvious self-intersections where possible
+- remove unnecessary noise
+- represent the field boundary cleanly
+
+Do NOT simply calculate a convex hull unless clearly appropriate.
+
+An agricultural field can be concave or irregular.
+
+Preserve meaningful field shape.
+
+==================================================
+AREA CALCULATION
+==================================================
+
+Calculate the enclosed field area.
+
+Display:
+
+Square metres
+Acres
+Hectares
+
+Example:
+
+AREA
+
+2,431 m²
+0.601 acres
+0.243 hectares
+
+Use geographically appropriate calculations rather than treating latitude/longitude degrees as ordinary Cartesian coordinates.
+
+For small fields, an appropriate local projection or geodesic/spherical calculation may be used.
+
+==================================================
+PERIMETER
+==================================================
+
+Calculate the field perimeter.
+
+Example:
+
+PERIMETER
+218 m
+
+==================================================
+DIGITAL TWIN
+==================================================
+
+Once calibration is completed, generate a digital representation of the field.
+
+Display:
+
+FIELD DIGITAL TWIN
+
+- Boundary
+- Home position
+- Area
+- Perimeter
+- Number of mapping points
+- Mapping duration
+- Rover path
+
+Visually distinguish:
+
+RAW GPS TRACK
+from
+PROCESSED FIELD BOUNDARY
+
+This is important for debugging and for demonstrating to judges that the software actually processed the GPS data.
+
+==================================================
+MAP VISUALIZATION
+==================================================
+
+Use a browser-compatible map library if appropriate.
+
+Prefer a lightweight web mapping solution.
+
+The map should show:
+
+📍 Home position
+🚜 Rover current position
+🔵 Raw GPS trajectory
+🟢 Processed field boundary
+📍 Mapping points
+
+The map should automatically fit to the surveyed field.
+
+If an external map provider requires an API key, provide a development fallback so the mapping pipeline can still be demonstrated without one.
+
+==================================================
+LIVE MAPPING VISUALIZATION
+==================================================
+
+While mapping is running, show the rover's simulated position moving along the field.
+
+Example:
+
+       FIELD
+
+    P1────────P2
+    │          │
+    │    🚜    │
+    │          │
+    P4────────P3
+
+The rover marker should move as GPS points arrive.
+
+The raw trajectory should appear progressively.
+
+When mapping ends:
+
+RAW TRACK
+     ↓
+PROCESSING
+     ↓
+CLEAN BOUNDARY
+     ↓
+DIGITAL TWIN READY
+
+==================================================
+CALIBRATION SUMMARY
+==================================================
+
+After finishing:
+
+FIELD CALIBRATION COMPLETE ✓
+
+Area:
+2.37 acres
+
+Perimeter:
+412 m
+
+Mapping distance:
+438 m
+
+Raw GPS points:
+782
+
+Valid points:
+756
+
+Filtered points:
+731
+
+Home position:
+Saved ✓
+
+Boundary:
+Generated ✓
+
+Digital Twin:
+Ready ✓
+
+==================================================
+DATA MODEL
+==================================================
+
+Create a clear internal field object similar to:
+
+{
+    fieldId,
+    name,
+    homePosition: {
+        latitude,
+        longitude
+    },
+    boundary: [
+        {
+            latitude,
+            longitude
+        }
+    ],
+    rawTrack: [
+        {
+            latitude,
+            longitude,
+            timestamp,
+            accuracy
+        }
+    ],
+    areaSquareMeters,
+    areaAcres,
+    areaHectares,
+    perimeterMeters,
+    mappingStatistics
+}
+
+This model will later become the basis for our backend/database.
+
+==================================================
+FUTURE AGRIVISION INTEGRATION
+==================================================
+
+The field boundary generated here will eventually be used by the larger AGRIVISION system.
+
+Future architecture:
+
+GPS
+ ↓
+Field Mapping
+ ↓
+Digital Twin
+ ↓
+Farm Zones
+ ↓
+Rover Navigation
+ ↓
+Sensor Observations
+ ↓
+AI Detection
+ ↓
+GPS-tagged Agricultural Events
+ ↓
+Digital Twin Updates
+ ↓
+Farmer Dashboard
+ ↓
+n8n Notifications
+
+For example:
+
+Disease detected
++
+GPS position
+        ↓
+Zone B-7
+        ↓
+Digital Twin marks location 🔴
+        ↓
+n8n
+        ↓
+Farmer SMS / WhatsApp alert
+
+==================================================
+FUTURE ZONE SYSTEM
+==================================================
+
+Do NOT implement a complicated automatic zoning system yet.
+
+However, structure the field model so that zones can be added later.
+
+Future:
+
+FIELD
+├── Boundary
+├── Home Position
+├── Zones
+├── Obstacles
+├── Rover Paths
+└── Observations
+
+==================================================
+UI DESIGN
+==================================================
+
+Create a professional AGRIVISION interface.
+
+Style:
+
+- Modern agricultural technology
+- Robotics
+- AI
+- Dark dashboard
+- Green/teal agricultural accents
+- Clear typography
+- Professional cards
+- Smooth but restrained animations
+
+Main sections:
+
+1. Field Calibration
+2. Live GPS Status
+3. Map
+4. Mapping Statistics
+5. Digital Twin Summary
+6. Processing Pipeline
+7. Controls
+
+Show the processing pipeline visually:
+
+RAW GPS
+  ↓
+VALIDATE
+  ↓
+FILTER
+  ↓
+SMOOTH
+  ↓
+SIMPLIFY
+  ↓
+BOUNDARY
+  ↓
+AREA
+  ↓
+DIGITAL TWIN
+
+Highlight each stage as it executes.
+
+==================================================
+DEMO MODE
+==================================================
+
+Create a clear demo mode because this module will eventually be shown to competition judges.
+
+Include:
+
+[ DEMO FIELD 1 ]
+[ DEMO FIELD 2 ]
+[ IRREGULAR FIELD ]
+[ NOISY GPS TEST ]
+[ OUTLIER TEST ]
+
+These should generate controlled GPS datasets.
+
+Clearly label:
+
+SIMULATION MODE
+
+Never present simulated GPS as real hardware data.
+
+==================================================
+TESTING
+==================================================
+
+Before completing the implementation, test:
+
+1. Rectangle field
+2. Irregular field
+3. Noisy GPS
+4. Duplicate points
+5. GPS outliers
+6. Missing points
+7. Very small field
+8. Larger field
+9. Field with concave boundary
+10. Mapping session reset
+11. Pause/resume
+12. Area calculation
+13. Perimeter calculation
+14. Home-position storage
+15. Boundary closure
+
+The processed boundary should remain visually reasonable under noisy input.
+
+==================================================
+IMPORTANT ARCHITECTURAL PRINCIPLE
+==================================================
+
+This module must be HARDWARE-INDEPENDENT.
+
+Today:
+
+GPS Simulator
+    ↓
+GPS Processing
+    ↓
+Digital Twin
+
+Later:
+
+ESP32 + GPS
+    ↓
+Telemetry
+    ↓
+GPS Processing
+    ↓
+Digital Twin
+
+The processing pipeline must remain unchanged.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+When I open index.html:
+
+1. I can start a field-mapping session.
+2. A simulated rover moves around a realistic field boundary.
+3. GPS points are generated with realistic noise.
+4. Raw GPS data is validated.
+5. Bad/outlier points are detected.
+6. GPS trajectory is filtered and smoothed.
+7. Unnecessary points are simplified.
+8. A clean field polygon is generated.
+9. Area is calculated in m², acres and hectares.
+10. Perimeter is calculated.
+11. Home position is saved.
+12. Raw trajectory and processed boundary are visually distinguishable.
+13. The resulting field appears as a clean digital twin.
+14. Mapping statistics are displayed.
+15. Different simulated fields can be tested.
+16. The architecture is ready for real ESP32/GPS data later.
+17. Only index.html, style.css and script.js exist.
+
+MOST IMPORTANT:
+
+Do NOT connect this implementation to the real GPS yet.
+
+Build the COMPLETE GPS-processing and field-calibration pipeline using realistic simulated GPS data first.
+
+The final purpose is:
+
+"Place rover → Start calibration → Drive around field → Automatically reconstruct field → Calculate area → Save home position → Create Digital Twin."
+
+This will later become the foundation for AGRIVISION's real agricultural field mapping system.

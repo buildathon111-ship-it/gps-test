@@ -1,0 +1,500 @@
+PROJECT: AGRIVISION — Browser-Based Plant Detection Prototype
+
+GOAL
+Build the first computer-vision prototype for our AGRIVISION agricultural rover project.
+
+For now, DO NOT use the ESP32-CAM, any physical hardware, backend, database, Python server, Node.js server, or framework.
+
+Use the laptop's built-in webcam as the temporary camera source.
+
+The purpose of this prototype is to establish the software pipeline now, so that later the laptop webcam can be replaced by the ESP32-CAM live stream without redesigning the detection architecture.
+
+==================================================
+STRICT FILE REQUIREMENT
+==================================================
+
+The entire application must be implemented using ONLY:
+
+1. index.html
+2. style.css
+3. script.js
+
+Do NOT create:
+- React
+- Next.js
+- Vue
+- Node.js
+- Python
+- Flask
+- Express
+- TypeScript
+- build systems
+- npm dependencies
+- package.json
+- backend files
+- additional HTML/JS/CSS files
+
+The application must run directly in a modern browser.
+
+If an external browser-compatible AI/YOLO library or model is required, load it through CDN or another browser-compatible mechanism from the HTML/JavaScript, while keeping our own project limited to the three files above.
+
+==================================================
+CORE FUNCTIONALITY
+==================================================
+
+Build a live plant-detection application.
+
+Pipeline:
+
+Laptop Webcam
+      ↓
+Live Video Frames
+      ↓
+YOLO/Object Detection
+      ↓
+Plant Detection
+      ↓
+Bounding Boxes
+      ↓
+Confidence Score
+      ↓
+AGRIVISION UI
+
+The first model should focus ONLY on detecting plants.
+
+Do NOT implement crop disease detection yet.
+
+Do NOT implement plant species classification yet.
+
+Do NOT implement nutrient deficiency detection yet.
+
+This is ONLY Stage 1:
+"Is there a plant in the camera view, and where is it?"
+
+==================================================
+CAMERA
+==================================================
+
+Request webcam permission using the browser MediaDevices/getUserMedia API.
+
+Display the live camera feed prominently.
+
+Handle:
+- camera permission denied
+- camera unavailable
+- no camera detected
+- loading state
+- browser incompatibility
+
+Provide:
+[START CAMERA]
+[STOP CAMERA]
+
+Do not access the camera automatically without user interaction if browser security policies prevent it.
+
+==================================================
+PLANT DETECTION
+==================================================
+
+Use a browser-compatible YOLO/object-detection solution.
+
+IMPORTANT:
+The architecture must isolate the detection implementation behind a clean JavaScript interface.
+
+For example conceptually:
+
+detectFrame(frame)
+    ↓
+DetectionResult
+
+The rest of the application must NOT depend directly on the YOLO implementation.
+
+Detection result should contain information such as:
+
+{
+    className: "plant",
+    confidence: 0.94,
+    boundingBox: {
+        x: ...,
+        y: ...,
+        width: ...,
+        height: ...
+    }
+}
+
+If a suitable plant-specific YOLO model is not available yet, create a clearly separated MOCK DETECTOR mode so that the complete UI and pipeline can still be developed and tested.
+
+Do NOT pretend that mock detections are real AI detections.
+
+Clearly label mock mode as:
+"SIMULATION MODE"
+
+==================================================
+LIVE DETECTION UI
+==================================================
+
+Draw bounding boxes over detected plants.
+
+Each detection should display:
+
+Plant
+94%
+
+Example:
+
++---------------------+
+|       PLANT         |
+|       94%           |
++---------------------+
+
+Support multiple plants in one frame.
+
+Example:
+
+Plant 1 — 94%
+Plant 2 — 88%
+Plant 3 — 81%
+
+==================================================
+DASHBOARD
+==================================================
+
+Create a professional AGRIVISION-style interface.
+
+The UI should feel like an agricultural AI/robotics product rather than a generic webcam demo.
+
+Include:
+
+HEADER
+- AGRIVISION logo/name
+- "AI VISION SYSTEM"
+- connection/status indicator
+
+MAIN CAMERA PANEL
+- Live webcam
+- Detection bounding boxes
+- FPS
+- inference status
+
+RIGHT/SIDE PANEL
+- Detection Status
+- Number of plants detected
+- Highest confidence
+- Average confidence
+- Current detection mode
+
+STATUS EXAMPLES:
+
+🟢 PLANT DETECTED
+Plants detected: 3
+Confidence: 94%
+
+or
+
+⚪ NO PLANT DETECTED
+Plants detected: 0
+
+==================================================
+SYSTEM STATUS
+==================================================
+
+Show:
+
+Camera:
+ONLINE / OFFLINE
+
+AI Engine:
+READY / LOADING / ERROR
+
+Detection:
+ACTIVE / PAUSED
+
+Mode:
+LIVE / SIMULATION
+
+FPS:
+XX
+
+Inference:
+XX ms
+
+==================================================
+CONTROLS
+==================================================
+
+Include:
+
+[ START CAMERA ]
+[ STOP CAMERA ]
+[ START DETECTION ]
+[ STOP DETECTION ]
+
+If useful:
+
+[ SIMULATION MODE ]
+
+The UI should make it obvious what state the system is currently in.
+
+==================================================
+ARCHITECTURE REQUIREMENT
+==================================================
+
+Design the JavaScript so that the camera source and detection engine are abstracted.
+
+Conceptually:
+
+Camera Source
+    ↓
+Frame Provider
+    ↓
+Detection Engine
+    ↓
+Detection Results
+    ↓
+Visualization/UI
+
+Do NOT hard-code the application around the laptop webcam.
+
+Later we should be able to replace:
+
+Laptop Webcam
+    ↓
+ESP32-CAM Stream
+
+without rewriting:
+- detection logic
+- UI
+- detection result handling
+- statistics
+- future AGRIVISION integration
+
+Create clean functions/modules within script.js to maintain this separation.
+
+==================================================
+PERFORMANCE
+==================================================
+
+Do NOT run expensive inference unnecessarily on every browser frame.
+
+Separate:
+
+Camera FPS
+
+from:
+
+AI inference FPS
+
+For example:
+
+Camera:
+30 FPS
+
+AI:
+5 FPS
+
+Use an appropriate inference interval/requestAnimationFrame/request timing strategy.
+
+Display the actual values where possible.
+
+Avoid freezing the browser.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+The application must fail gracefully.
+
+Examples:
+
+If camera permission is denied:
+
+"Camera access denied. Please allow camera access."
+
+If model loading fails:
+
+"AI model failed to load."
+
+If no detection:
+
+"No plants detected."
+
+Never leave the interface looking frozen or broken.
+
+==================================================
+RESPONSIVE DESIGN
+==================================================
+
+The application must work well on:
+
+- Laptop
+- Desktop
+- Tablet
+
+Prioritize laptop/desktop because this is currently a development and demonstration tool.
+
+==================================================
+VISUAL DESIGN
+==================================================
+
+Use a polished AGRIVISION visual identity.
+
+Style:
+
+- Modern
+- Professional
+- Clean
+- Agricultural technology
+- Robotics
+- AI
+- Dark dashboard aesthetic
+- Subtle green/teal agricultural accents
+- Clear typography
+- Good spacing
+- Professional cards
+- Smooth but restrained animations
+
+Avoid:
+- childish UI
+- excessive gradients
+- excessive animations
+- generic template appearance
+
+The application should look suitable for showing to competition judges.
+
+==================================================
+FUTURE-READY DESIGN
+==================================================
+
+This is extremely important.
+
+This is only Stage 1 of our eventual AI pipeline.
+
+Eventually we want:
+
+ESP32-CAM
+    ↓
+Live Stream
+    ↓
+Plant Detector
+    ↓
+Crop Identification
+    ↓
+Health/Disease Classification
+    ↓
+GPS Location
+    ↓
+Digital Twin
+    ↓
+Alert Engine
+    ↓
+n8n
+    ↓
+SMS/WhatsApp
+    ↓
+Farmer
+
+For now implement ONLY:
+
+Laptop Webcam
+    ↓
+Plant Detector
+    ↓
+Detection UI
+
+But structure the code so future stages can be plugged in cleanly.
+
+==================================================
+SIMULATION / DEMO MODE
+==================================================
+
+Because this project will eventually be demonstrated to judges, include a development-friendly simulation mode if the real YOLO model cannot yet be loaded.
+
+Simulation mode should generate realistic detection results over the camera/image area.
+
+However:
+
+- Clearly display "SIMULATION MODE"
+- Never present simulated results as real AI results
+- Keep simulation implementation separate from the real detector
+- Make it easy to disable/remove later
+
+==================================================
+DOCUMENTATION
+==================================================
+
+Inside the existing three files, use clear comments explaining important sections.
+
+At the top of script.js include a concise explanation of:
+
+1. Camera abstraction
+2. Detection abstraction
+3. YOLO/model integration
+4. Simulation mode
+5. Detection visualization
+6. Future ESP32-CAM integration
+
+DO NOT create separate documentation files because only three project files are allowed.
+
+==================================================
+QUALITY REQUIREMENTS
+==================================================
+
+Before finishing:
+
+1. Check all JavaScript for errors.
+2. Ensure the camera starts correctly.
+3. Ensure camera permission errors are handled.
+4. Ensure bounding boxes render correctly.
+5. Ensure multiple detections work.
+6. Ensure the UI updates correctly.
+7. Ensure start/stop controls work.
+8. Ensure simulation mode works independently.
+9. Ensure no unnecessary files are created.
+10. Ensure the application can be opened/run in a modern browser.
+
+Do not over-engineer this first version.
+
+The goal is a clean, impressive, modular Stage-1 prototype that we can build upon later.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+When I open index.html:
+
+1. I see the AGRIVISION interface.
+2. I can start my laptop webcam.
+3. I see the live camera.
+4. The AI detection engine loads if available.
+5. Plants are detected with bounding boxes and confidence scores.
+6. The dashboard shows detection statistics.
+7. I can stop/start the camera.
+8. I can stop/start detection.
+9. Simulation mode is available if real model inference is not yet configured.
+10. The architecture is ready for replacing the laptop webcam with ESP32-CAM later.
+
+MOST IMPORTANT:
+
+Do not rush into disease classification.
+
+First make the fundamental computer-vision layer reliable:
+
+"FIND THE PLANT."
+
+Once this works, we will build the next layer:
+
+"IDENTIFY THE CROP."
+
+Then:
+
+"DETERMINE HEALTH/DISEASE."
+
+Then:
+
+"ASSOCIATE THE RESULT WITH GPS."
+
+Then:
+
+"DISPLAY IT ON THE AGRIVISION DIGITAL TWIN."
+
+Build only Stage 1 now.

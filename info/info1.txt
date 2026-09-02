@@ -1,0 +1,931 @@
+PROJECT: AGRIVISION — Environmental Intelligence & Agricultural Risk Engine
+
+GOAL
+Build a standalone Environmental Intelligence module for AGRIVISION.
+
+The purpose is to take the geographic location of an agricultural field (latitude/longitude and eventually the complete field polygon) and collect relevant environmental, weather, climate, hydrological and satellite-derived information.
+
+The system must transform raw environmental data into understandable agricultural risk indicators for:
+
+1. Drought
+2. Heat waves / heat stress
+3. Flood risk
+4. Water stress / irrigation requirement
+5. General environmental/agricultural risk
+6. Vegetation stress when satellite data is available
+
+This module directly addresses the AGRIVISION competition problem statement, which explicitly requires early detection of droughts, floods, heat waves and other agricultural risks.
+
+==================================================
+STRICT FILE REQUIREMENT
+==================================================
+
+For this prototype use ONLY:
+
+1. index.html
+2. style.css
+3. script.js
+
+Do NOT create:
+
+- React
+- Next.js
+- Vue
+- Python
+- Node.js
+- Express
+- TypeScript
+- package.json
+- backend
+- database
+- additional HTML/CSS/JS files
+
+The prototype must run directly in a modern browser.
+
+External browser-compatible libraries may be loaded through CDN when necessary.
+
+==================================================
+IMPORTANT DATA PRINCIPLE
+==================================================
+
+Prefer authoritative/open data sources.
+
+Potential sources include:
+
+1. NASA POWER
+   - Meteorological data
+   - Solar data
+   - Climate/agroclimatology data
+   - Point and regional queries
+
+2. Open-Meteo
+   - Current weather
+   - Forecast weather
+   - Historical weather
+   - Temperature
+   - Precipitation
+   - Humidity
+   - Wind
+   - Evapotranspiration
+   - Soil moisture
+   - Vapour pressure deficit
+   - Other relevant variables
+
+3. Copernicus Sentinel / Sentinel-2
+   - Earth observation
+   - Vegetation information
+   - NDVI / related vegetation indices
+   - Farm-scale satellite observations
+
+4. GloFAS / Copernicus Emergency Management Service
+   - River discharge
+   - Hydrological information
+   - Flood-related indicators
+
+Do NOT fabricate API responses.
+
+If an API requires credentials, rate limits, CORS restrictions or backend access, create a clean provider interface and a simulation fallback rather than attempting to bypass the restriction.
+
+==================================================
+DATA SOURCE ABSTRACTION
+==================================================
+
+Create a provider abstraction.
+
+Conceptually:
+
+Environmental Data Provider
+        ↓
+Weather Provider
+Climate Provider
+Satellite Provider
+Flood Provider
+        ↓
+Normalized Environmental Data
+        ↓
+Risk Engine
+
+The Risk Engine must NOT depend directly on one API provider.
+
+For example:
+
+getWeatherData(location)
+getClimateData(location)
+getFloodData(location)
+getSatelliteData(field)
+
+These should return normalized internal data structures.
+
+This will allow providers to be replaced later.
+
+==================================================
+FARM LOCATION INPUT
+==================================================
+
+Create a Farm Location panel.
+
+Allow the user to enter:
+
+Farm Name
+Latitude
+Longitude
+
+Also support:
+
+[USE DEMO FARM]
+
+For future integration, support a field polygon:
+
+{
+    boundary: [
+        { latitude, longitude },
+        { latitude, longitude },
+        ...
+    ]
+}
+
+The environmental engine must be able to operate initially from the farm centroid/location.
+
+Later it should support the entire field polygon.
+
+==================================================
+CURRENT WEATHER
+==================================================
+
+Display:
+
+Temperature
+Feels-like temperature if available
+Relative humidity
+Wind speed
+Wind direction
+Precipitation
+Cloud cover
+Surface pressure
+Soil temperature if available
+Soil moisture if available
+Evapotranspiration / ET₀ if available
+Vapour pressure deficit if available
+
+Show:
+
+Current conditions
+Data timestamp
+Data source
+
+==================================================
+WEATHER FORECAST
+==================================================
+
+Display a useful forecast window.
+
+Include:
+
+Temperature trend
+Rainfall forecast
+Precipitation probability
+Maximum temperature
+Minimum temperature
+Wind
+ET₀ if available
+
+Create a simple visualization.
+
+Example:
+
+NEXT 7 DAYS
+
+Mon  🌧️  31°C
+Tue  ☀️  35°C
+Wed  ☀️  38°C
+Thu  🔥  40°C
+Fri  🔥  41°C
+Sat  🌧️  34°C
+Sun  🌧️  32°C
+
+==================================================
+HISTORICAL / CLIMATE BASELINE
+==================================================
+
+Where supported, retrieve historical/climate information.
+
+The purpose is NOT simply to display historical weather.
+
+We need a baseline that can eventually be used to detect anomalies.
+
+Examples:
+
+Historical average temperature
+Historical rainfall
+Recent rainfall
+Rainfall anomaly
+Temperature anomaly
+
+Conceptually:
+
+Current/Rolling Conditions
+          ↓
+Historical Baseline
+          ↓
+Anomaly
+          ↓
+Risk Engine
+
+==================================================
+DROUGHT RISK ENGINE
+==================================================
+
+Create a Drought Risk Score from 0–100.
+
+The score must NOT be based on a single variable.
+
+Potential inputs:
+
+- Recent precipitation
+- Rainfall anomaly
+- Soil moisture
+- Evapotranspiration
+- Temperature
+- Historical precipitation baseline
+- Consecutive dry days if available
+
+Example:
+
+Rainfall deficit        32%
+Soil moisture           LOW
+ET₀                     HIGH
+Temperature             HIGH
+
+          ↓
+
+DROUGHT RISK
+78 / 100
+HIGH
+
+Show:
+
+Risk score
+Risk category
+Main contributing factors
+Recommended observation/action
+
+Do NOT claim the score is an official government drought index.
+
+Clearly label it:
+
+"AGRIVISION Drought Risk Estimate"
+
+==================================================
+HEAT-WAVE / HEAT-STRESS ENGINE
+==================================================
+
+Calculate a Heat Risk Score.
+
+Consider:
+
+- Maximum temperature
+- Minimum/night temperature when available
+- Duration of high temperatures
+- Humidity
+- Vapour pressure deficit
+- Forecast temperatures
+
+Example:
+
+Heat Risk
+82 / 100
+HIGH
+
+Show the forecast period responsible for the risk.
+
+Example:
+
+"High heat risk expected over the next 3 days."
+
+IMPORTANT:
+
+Do not use one universal temperature threshold for every crop.
+
+Design the engine so crop-specific thresholds can be added later.
+
+==================================================
+FLOOD RISK ENGINE
+==================================================
+
+Use available hydrological/weather information.
+
+Potential inputs:
+
+- Forecast precipitation
+- Recent accumulated precipitation
+- Extreme precipitation events
+- GloFAS river discharge where applicable
+- Historical discharge/anomaly where available
+
+Output:
+
+Flood Risk
+18 / 100
+LOW
+
+or:
+
+Flood Risk
+76 / 100
+HIGH
+
+IMPORTANT:
+
+Do NOT claim that river discharge alone predicts direct flooding of the farm.
+
+Clearly distinguish:
+
+"Hydrological/Flood Risk Estimate"
+
+from:
+
+"Confirmed Farm Inundation"
+
+The system should acknowledge data resolution limitations.
+
+==================================================
+WATER STRESS / IRRIGATION INTELLIGENCE
+==================================================
+
+Create a Water Stress indicator using:
+
+Soil moisture
+Precipitation
+ET₀
+Temperature
+Recent rainfall
+Forecast rainfall
+
+Example:
+
+WATER STRESS
+71 / 100
+HIGH
+
+Recommendation:
+
+"Inspect soil moisture in Zone B."
+
+Do not automatically command irrigation.
+
+The system should initially provide decision support.
+
+==================================================
+SATELLITE VEGETATION MODULE
+==================================================
+
+Create a satellite provider interface.
+
+Where a suitable public Copernicus/Sentinel source can be accessed, support:
+
+- Sentinel-2 imagery
+- NDVI
+- Vegetation trend
+- Vegetation anomaly
+
+If live satellite access cannot be implemented in the browser because of authentication/CORS/API restrictions:
+
+Implement a clearly separated simulated satellite provider.
+
+Never present simulated satellite values as real.
+
+Display:
+
+DATA MODE:
+LIVE
+or
+SIMULATION
+
+==================================================
+NDVI / VEGETATION STRESS
+==================================================
+
+If satellite data is available:
+
+Calculate/display:
+
+Mean NDVI
+Minimum NDVI
+Maximum NDVI
+Vegetation anomaly
+
+Visualize the field using a simple heatmap.
+
+Example:
+
+GREEN:
+Healthy vegetation
+
+YELLOW:
+Potential stress
+
+RED:
+Strong vegetation anomaly
+
+Do NOT automatically diagnose disease from NDVI.
+
+NDVI should be treated as a vegetation-health/stress indicator.
+
+Disease diagnosis will be handled by the computer-vision module.
+
+==================================================
+AGRICULTURAL RISK DASHBOARD
+==================================================
+
+Create a central dashboard:
+
+AGRIVISION
+ENVIRONMENTAL INTELLIGENCE
+
+--------------------------------
+
+🌵 DROUGHT
+72 / 100
+HIGH
+
+🔥 HEAT STRESS
+81 / 100
+HIGH
+
+🌊 FLOOD
+18 / 100
+LOW
+
+💧 WATER STRESS
+69 / 100
+HIGH
+
+🌱 VEGETATION STRESS
+42 / 100
+WATCH
+
+--------------------------------
+
+Overall Environmental Risk
+74 / 100
+HIGH
+
+==================================================
+RISK CALCULATION
+==================================================
+
+Create a modular Risk Engine.
+
+Conceptually:
+
+Environmental Inputs
+       ↓
+Normalization
+       ↓
+Individual Risk Models
+       ↓
+Drought
+Heat
+Flood
+Water Stress
+Vegetation Stress
+       ↓
+Overall Agricultural Risk
+
+Do NOT simply average all risks.
+
+Keep individual scores independent.
+
+The overall risk should be configurable and transparent.
+
+Show the factors contributing to the overall risk.
+
+==================================================
+RISK EXPLANATION
+==================================================
+
+Every warning should explain WHY it exists.
+
+Example:
+
+DROUGHT RISK: HIGH
+
+Contributing factors:
+
+• Rainfall below recent baseline
+• Soil moisture is low
+• ET₀ is elevated
+• High temperatures expected
+
+This is much more useful than simply displaying:
+
+"Drought: 78"
+
+==================================================
+EARLY WARNING
+==================================================
+
+Create an Early Warning section.
+
+Example:
+
+⚠️ EARLY WARNING
+
+Heat stress risk is expected to increase
+over the next 72 hours.
+
+Risk:
+HIGH
+
+Reason:
+Maximum temperatures above recent baseline
+for multiple consecutive days.
+
+==================================================
+FARM MAP
+==================================================
+
+Include a simple map representation.
+
+Display:
+
+📍 Farm
+🏠 Home position
+🚜 Rover
+🟢/🟡/🔴 environmental zones
+
+If the farm polygon from the GPS calibration module is available:
+
+Render the actual field boundary.
+
+The system should eventually support:
+
+Field Polygon
+     ↓
+Environmental Data
+     ↓
+Risk Map
+
+==================================================
+ZONE-BASED FUTURE ARCHITECTURE
+==================================================
+
+Design the internal model so that later we can divide the farm into zones.
+
+Example:
+
+FIELD
+├── Zone A
+├── Zone B
+├── Zone C
+└── Zone D
+
+Each zone can eventually have:
+
+Weather
+Soil moisture
+Vegetation
+Disease observations
+Rover observations
+Risk scores
+
+Do NOT implement complex zoning yet unless simple grid zones are useful for the prototype.
+
+==================================================
+SIMULATION MODE
+==================================================
+
+Because the real rover and farm coordinates are not available yet, implement a robust simulation mode.
+
+Provide:
+
+[DEMO FARM - NORMAL]
+
+[DEMO FARM - DROUGHT]
+
+[DEMO FARM - HEAT WAVE]
+
+[DEMO FARM - FLOOD RISK]
+
+[DEMO FARM - MULTI-RISK]
+
+Simulation should produce realistic-looking values.
+
+Example:
+
+DROUGHT DEMO:
+
+Rainfall:
+Below baseline
+
+Soil moisture:
+18%
+
+ET₀:
+High
+
+Temperature:
+39°C
+
+Result:
+
+Drought Risk:
+84 / 100
+HIGH
+
+Clearly display:
+
+SIMULATION MODE
+
+Do NOT present simulated data as real environmental measurements.
+
+==================================================
+REAL API MODE
+==================================================
+
+Provide a clear architecture for switching:
+
+SIMULATION
+    ↓
+Real API
+
+without changing the Risk Engine.
+
+Example:
+
+DataProvider = SimulationProvider
+
+Later:
+
+DataProvider = OpenMeteoProvider
+DataProvider = NASAPowerProvider
+DataProvider = SentinelProvider
+DataProvider = GloFASProvider
+
+==================================================
+DATA PROVENANCE
+==================================================
+
+Every displayed real data value should show:
+
+Source
+Timestamp
+Variable
+Unit
+
+Example:
+
+Temperature
+39.2°C
+Open-Meteo
+Updated: 22:00
+
+Satellite:
+
+NDVI
+0.63
+Sentinel-2
+Acquisition: 2026-08-30
+
+This is extremely important for scientific credibility.
+
+==================================================
+ATTRIBUTION
+==================================================
+
+Where required by the provider, include visible attribution.
+
+Do not remove provider credits.
+
+For Open-Meteo, include appropriate attribution and link to Open-Meteo because its data are provided under CC BY 4.0.
+
+For Copernicus/Sentinel data, follow the required Copernicus attribution/notice.
+
+For NASA POWER, include NASA POWER attribution.
+
+==================================================
+API SAFETY
+==================================================
+
+Do NOT expose private API keys in the frontend.
+
+If a provider requires secrets:
+
+- Keep the provider interface ready
+- Use simulation mode in this three-file prototype
+- Clearly explain that production integration must happen through a backend/proxy
+
+Do NOT hard-code secret credentials.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+Handle:
+
+API unavailable
+Network error
+Invalid coordinates
+No data available
+Rate limiting
+CORS restriction
+Satellite image unavailable
+Flood data unavailable
+
+The application should continue functioning with other providers when one provider fails.
+
+Example:
+
+Weather:
+AVAILABLE
+
+Flood:
+UNAVAILABLE
+
+Satellite:
+AVAILABLE
+
+Do not crash the entire application.
+
+==================================================
+UI DESIGN
+==================================================
+
+Make this look like a professional agricultural intelligence platform.
+
+Theme:
+
+- Dark
+- Professional
+- Agricultural technology
+- AI
+- Satellite monitoring
+- Robotics
+
+Use:
+
+Cards
+Charts
+Risk gauges
+Map
+Timeline
+Status indicators
+
+Avoid generic dashboard templates.
+
+==================================================
+DEMO WORKFLOW
+==================================================
+
+The complete demo should work like this:
+
+1. Open AGRIVISION.
+2. Select DEMO FARM.
+3. Load environmental data.
+4. Show current weather.
+5. Show forecast.
+6. Show historical/baseline information.
+7. Calculate drought risk.
+8. Calculate heat risk.
+9. Calculate flood risk.
+10. Calculate water stress.
+11. Show vegetation/satellite layer when available.
+12. Generate overall agricultural risk.
+13. Explain why each risk exists.
+14. Display early warning.
+15. Show the information on the farm digital twin.
+
+==================================================
+FUTURE INTEGRATION
+==================================================
+
+This module will eventually connect with:
+
+GPS Field Mapping
+        ↓
+Farm Digital Twin
+        ↓
+Environmental Intelligence
+        +
+Rover Sensors
+        +
+Computer Vision
+        ↓
+Unified Agricultural Risk Engine
+        ↓
+n8n
+        ↓
+SMS / WhatsApp / Farmer App
+
+Example future event:
+
+Environmental Risk Engine:
+Drought Risk = HIGH
+
+Rover:
+Soil Moisture = 17%
+
+Satellite:
+Vegetation anomaly detected
+
+Computer Vision:
+Plant stress detected
+
+        ↓
+
+AGRIVISION:
+HIGH CONFIDENCE WATER-STRESS EVENT
+
+        ↓
+
+Digital Twin:
+Zone C highlighted RED
+
+        ↓
+
+n8n:
+
+"⚠️ AGRIVISION ALERT
+High water-stress risk detected in Zone C.
+Soil moisture: 17%.
+Rainfall deficit detected.
+Inspect/irrigate Zone C."
+
+==================================================
+TESTING
+==================================================
+
+Test:
+
+1. Normal conditions
+2. High temperature
+3. Low rainfall
+4. Low soil moisture
+5. High precipitation
+6. Flood-risk conditions
+7. Multiple simultaneous risks
+8. Missing provider
+9. API failure
+10. Invalid coordinates
+11. Simulation mode
+12. Provider switching
+13. Risk explanation
+14. Farm polygon display
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+When index.html is opened:
+
+1. A farm coordinate can be entered.
+2. Environmental data can be retrieved when supported.
+3. Simulation mode always works.
+4. Current weather is displayed.
+5. Forecast is displayed.
+6. Historical/baseline information is displayed when available.
+7. Drought risk is calculated.
+8. Heat risk is calculated.
+9. Flood risk is calculated.
+10. Water stress is calculated.
+11. Satellite/vegetation layer is supported through a provider interface.
+12. Risk scores are explained.
+13. Early warnings are generated.
+14. Data sources and timestamps are visible.
+15. Simulation and real data are clearly distinguished.
+16. API failures do not crash the application.
+17. No API secrets are exposed.
+18. The architecture is ready for the real AGRIVISION Digital Twin.
+19. Only index.html, style.css and script.js are created.
+
+MOST IMPORTANT:
+
+Do NOT build a simple weather dashboard.
+
+Build the foundation of AGRIVISION's:
+
+"ENVIRONMENTAL INTELLIGENCE + AGRICULTURAL RISK ENGINE"
+
+The purpose is to transform open environmental data into actionable, explainable agricultural risk information.
+
+The final AGRIVISION architecture should eventually be:
+
+GPS Field Mapping
+        ↓
+Digital Twin
+        ↓
+Environmental Intelligence
+        ↓
+Rover Sensors
+        ↓
+Computer Vision
+        ↓
+Agricultural Risk Engine
+        ↓
+Early Warning
+        ↓
+n8n
+        ↓
+Farmer Notification
+
+Build this module independently now using real open data where possible and realistic simulation where live access is not possible.
