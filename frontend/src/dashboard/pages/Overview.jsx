@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import Card from '../components/Card';
 import StatTile from '../components/StatTile';
+import RadialGauge from '../components/RadialGauge';
+import Ripple from '../components/Ripple';
 import { power, gps, environment, riskScores, zones, detections, roverLog } from '../data/simulation';
 
 function Overview() {
@@ -11,18 +13,24 @@ function Overview() {
                     <h1 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface">Command Center</h1>
                     <p className="text-sm text-on-surface-variant mt-1">Live simulated telemetry across the field.</p>
                 </div>
-                <Link to="/gps-mapping" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:opacity-90 transition-opacity">
+                <Ripple as={Link} to="/gps-mapping" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:opacity-90 active:scale-[0.97] transition-all">
                     <span className="material-symbols-outlined text-[18px]">my_location</span>
                     Open GPS Mapping
-                </Link>
+                </Ripple>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <StatTile label="Field Health" value="87" unit="/100" tone="good" sub="↑ 2%" />
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-stretch">
+                <Card padded={false} className="p-3 flex flex-col items-center justify-center gap-1">
+                    <RadialGauge value={87} tone="good" size={84} stroke={7} />
+                    <span className="text-[10px] font-bold uppercase text-on-surface-variant tracking-wide">Field Health</span>
+                </Card>
                 <StatTile label="Rover Battery" value={power.estimatedBatteryPercent} unit="% est." tone="neutral" caption={`Measured ${power.voltage}V`} />
                 <StatTile label="Soil Moisture" value={environment.soilMoisture.calibratedPercent} unit="% vol" tone="good" caption="Optimal" />
                 <StatTile label="Canopy Temp" value={environment.airTemp.value} unit="°C" tone="warn" caption="Moderate heat" />
-                <StatTile label="Risk Index" value={riskScores.aggregate} unit="/100" tone="good" caption="Low risk" />
+                <Card padded={false} className="p-3 flex flex-col items-center justify-center gap-1">
+                    <RadialGauge value={riskScores.aggregate} tone="good" size={84} stroke={7} />
+                    <span className="text-[10px] font-bold uppercase text-on-surface-variant tracking-wide">Risk Index</span>
+                </Card>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5">
@@ -49,9 +57,9 @@ function Overview() {
                         <p className="text-[10px] font-bold uppercase tracking-wide text-on-primary/70 mb-1">Recommendation</p>
                         <p className="text-sm text-on-primary/90">Inspect Zone A2 and consider targeted irrigation to mitigate yield loss.</p>
                     </div>
-                    <Link to="/field-map" className="mt-3 block text-center py-2.5 rounded-xl bg-secondary-container text-on-secondary-container text-sm font-semibold">
+                    <Ripple as={Link} to="/field-map" className="mt-3 block text-center py-2.5 rounded-xl bg-secondary-container text-on-secondary-container text-sm font-semibold active:scale-[0.98] transition-transform">
                         View Zone A2
-                    </Link>
+                    </Ripple>
                 </Card>
             </div>
 

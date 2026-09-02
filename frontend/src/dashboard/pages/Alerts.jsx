@@ -7,10 +7,12 @@ const LABEL = { bad: 'Critical', warn: 'Warning', info: 'Info' };
 const LABEL_COLOR = { bad: 'text-error', warn: 'text-warning', info: 'text-on-surface-variant' };
 
 function Alerts() {
+    const firstCriticalId = alerts.find((a) => a.severity === 'bad')?.id;
+
     return (
         <div className="flex flex-col gap-3">
             {alerts.map((a) => (
-                <Card key={a.id} className={`border-l-4 ${BORDER[a.severity]}`}>
+                <Card key={a.id} className={`border-l-4 ${BORDER[a.severity]} ${a.id === firstCriticalId ? 'glow-pulse' : ''}`}>
                     <div className="flex items-start gap-4">
                         <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${ICON_BG[a.severity]}`}>
                             <span className="material-symbols-outlined text-[20px]">{a.icon}</span>

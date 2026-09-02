@@ -26,7 +26,9 @@ function DashboardLayout() {
             <div className="flex-1 flex flex-col min-w-0">
                 <TopHeader title={meta.title} subtitle={meta.subtitle} />
                 <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 max-w-[1600px] w-full mx-auto">
-                    <Outlet />
+                    <div key={pathname} className="route-fade">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
             <MobileBottomNav />

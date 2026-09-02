@@ -1,6 +1,11 @@
 import Card from '../components/Card';
 import StatusPill from '../components/StatusPill';
+import StatefulButton from '../components/StatefulButton';
 import { irrigationZones, pump, irrigationHistory } from '../data/simulation';
+
+// Simulated command latency — real dispatch (Phase 10+ command pipeline)
+// will replace this with an actual QUEUED -> ACKNOWLEDGED -> EXECUTED wait.
+const simulateCommand = () => new Promise((resolve) => setTimeout(resolve, 700));
 
 function Irrigation() {
     return (
@@ -16,11 +21,14 @@ function Irrigation() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <StatusPill label={z.label} tone={z.status} />
-                                    <button className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                                        z.action === 'Stop' ? 'bg-error text-on-error' : 'bg-primary text-on-primary'
-                                    }`}>
+                                    <StatefulButton
+                                        tone={z.action === 'Stop' ? 'error' : 'primary'}
+                                        successLabel={z.action === 'Stop' ? 'Stopped' : 'Started'}
+                                        onAction={simulateCommand}
+                                        className="px-3 py-1.5 rounded-lg text-xs min-w-[64px]"
+                                    >
                                         {z.action}
-                                    </button>
+                                    </StatefulButton>
                                 </div>
                             </div>
                         ))}
@@ -42,7 +50,9 @@ function Irrigation() {
                             <p className="font-mono-data text-lg text-on-surface">{pump.lastActivation}</p>
                         </div>
                     </div>
-                    <button className="w-full py-3 rounded-xl bg-error text-on-error font-bold">STOP PUMP</button>
+                    <StatefulButton tone="error" successLabel="Pump Stopped" onAction={simulateCommand} className="w-full py-3 rounded-xl">
+                        STOP PUMP
+                    </StatefulButton>
                     <p className="text-[11px] text-on-surface-variant text-center mt-2">
                         Safety timeout: irrigation automatically shuts off after {pump.safetyTimeoutMinutes} mins to prevent over-watering.
                     </p>

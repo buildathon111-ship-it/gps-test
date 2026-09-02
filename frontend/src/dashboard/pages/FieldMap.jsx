@@ -28,7 +28,7 @@ function FieldMap() {
                 </p>
             </Card>
 
-            <Card title="Selected Zone" icon="my_location">
+            <Card title="Selected Zone" icon="my_location" className={selected.status === 'bad' ? 'glow-pulse' : ''}>
                 <div className="flex items-center justify-between mb-3">
                     <span className="font-headline text-lg font-bold text-on-surface">{selected.name}</span>
                     <StatusPill label={selected.label} tone={selected.status} />

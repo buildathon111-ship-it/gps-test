@@ -1,5 +1,6 @@
 import Card from '../components/Card';
 import StatTile from '../components/StatTile';
+import RadialGauge from '../components/RadialGauge';
 import { riskScores } from '../data/simulation';
 
 function RiskIntel() {
@@ -7,12 +8,7 @@ function RiskIntel() {
         <div className="flex flex-col gap-5">
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5">
                 <Card title="Aggregate Risk" icon="shield" className="flex flex-col items-center justify-center text-center">
-                    <div className="w-32 h-32 rounded-full border-8 border-secondary-container flex items-center justify-center">
-                        <div>
-                            <p className="font-headline text-3xl font-extrabold text-on-surface">{riskScores.aggregate}</p>
-                            <p className="text-[10px] text-on-surface-variant">/100</p>
-                        </div>
-                    </div>
+                    <RadialGauge value={riskScores.aggregate} tone="good" size={144} stroke={12} />
                     <p className="text-[11px] font-bold uppercase text-secondary mt-3">Low Risk Baseline</p>
                     <p className="text-xs text-on-surface-variant mt-1">Current factors pose minimal immediate threat to yield.</p>
                 </Card>
