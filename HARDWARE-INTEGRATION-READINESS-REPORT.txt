@@ -1,0 +1,208 @@
+AGRIROVER — HARDWARE INTEGRATION READINESS REPORT
+====================================================
+(Written in response to the Hardware Integration & Software Readiness
+Directive. Covers the 11 required sections, then Phase 1 is implemented.)
+
+
+1. CURRENT ARCHITECTURE
+--------------------------
+frontend/  React 19 + Vite + React Router.
+  - App.jsx -> Navbar + Routes (currently one route: "/" -> MapTracking)
+  - pages/MapTracking.jsx: Leaflet map, browser Geolocation tracking,
+    boundary drawing/area calc, JSON import/export, Save-to-DB button.
+  - api/boundaries.js: thin fetch wrapper calling the backend.
+
+backend/   Node.js (ESM) + Express + Mongoose.
+  - server.js: Express app, CORS, JSON body parsing, mounts
+    /api/boundaries, /api/health. Connects to MongoDB Atlas via
+    config/db.js on boot.
+  - models/Boundary.js: { projectName, points[{lat,lng}], pointCount,
+    areaSquareMeters, areaHectares, distanceMeters, timestamps }.
+  - routes/boundaries.js: GET list, GET one, POST create, DELETE.
+
+No realtime channel, no device/telemetry/command concept, no
+authentication, no TypeScript. Single MongoDB Atlas cluster, one
+collection (boundaries). Everything runs as two local dev servers
+(Vite on 5173, Express on 5000) with no deployment pipeline yet.
+
+
+2. CURRENT GAPS (relative to the directive)
+-----------------------------------------------
+- No device/node abstraction — nothing distinguishes ESP32 Node 1/2/3,
+  ESP32-CAM, or the rover as addressable entities.
+- No normalized telemetry envelope or per-sensor schemas (GPS beyond
+  what the browser Geolocation API gives, soil moisture, DHT22, rain,
+  LDR, ultrasonic x4, INA219 power).
+- No command model/pipeline (MOVE_FORWARD, STOP, START_PUMP, etc.) —
+  the app has no concept of sending anything to hardware.
+- No transport abstraction (LoRa/WiFi/Serial/ESP-NOW/Simulation) — N/A
+  yet since there's no transport at all.
+- No ingestion API, no validation/normalization layer, no event bus.
+- No realtime layer (WebSocket/SSE) — current UI is read-only against
+  REST, and the only "live" data is the browser's own GPS.
+- No device registry / health tracking (ONLINE/DEGRADED/OFFLINE).
+- No zones, no Digital Twin data model, no irrigation actuator model.
+- Simulation and "real" data are not distinguished anywhere, because
+  there is no real hardware source yet to distinguish from.
+- GPS pipeline is simpler than info2.txt's spec: it does live capture,
+  boundary closing and area/distance math, but no outlier
+  rejection/smoothing/simplification stage yet.
+
+None of this means the existing code is wrong — it means the boundary
+feature was built as a vertical slice (GPS -> UI -> DB) without the
+horizontal device/telemetry/command layers this directive asks for.
+Phase 1 below adds the shared vocabulary those layers will build on,
+without touching the working boundary feature.
+
+
+3. HARDWARE-TO-SOFTWARE MAPPING
+------------------------------------
+ESP32 Node 1 (controller/operator)  -> deviceType CONTROLLER_NODE
+ESP32 Node 2 (motor controller)     -> deviceType MOTOR_NODE
+ESP32 Node 3 (sensor/telemetry)     -> deviceType SENSOR_NODE
+ESP32-CAM                           -> deviceType CAMERA_NODE
+Rover as a whole                    -> deviceType ROVER (composite,
+                                        references its nodes)
+
+Sensors (all live on the SENSOR_NODE unless noted):
+  NEO-6M GPS            -> gps reading
+  Soil moisture          -> soil reading (raw + calibrated %)
+  DHT22                  -> environment reading (temp/humidity)
+  Rain drop sensor        -> rain reading (detection, NOT mm)
+  LDR                     -> light reading (state, not lux)
+  HC-SR04 x4 (on MOTOR_NODE, for obstacle avoidance) -> obstacle
+                              reading, keyed front/left/right/rear
+  INA219 (power, likely on MOTOR_NODE or its own rail) -> power
+                              reading (voltage/current/power)
+
+Actuators:
+  TB6612FNG x2 -> 4 motors (frontLeft/frontRight/rearLeft/rearRight),
+                   driven only through RoverCommand, never GPIO
+                   from AGRIROVER.
+  DC pump + relay -> pump actuator, driven through PumpCommand.
+  PAM8610 + speaker -> audio/alert output, driven by AlertEvent, not
+                        called directly by business logic.
+
+Communication:
+  2x SX1278/RA-02 LoRa -> CommunicationTransport implementation
+                            "lora" (low-bandwidth: telemetry/commands/
+                            events only, never video).
+  ESP-NOW (Node 1 <-> Node 2) -> transport "esp-now", operator input.
+  Browser/webcam today -> CameraProvider implementation "webcam",
+                            stand-in for the future ESP32Camera
+                            provider.
+
+
+4. TELEMETRY SCHEMA (Phase 1 deliverable)
+----------------------------------------------
+A normalized envelope (see backend/domain/telemetry.js), matching the
+directive's example but as plain JS/JSDoc shapes, not TypeScript
+(the project isn't on TS and this directive says not to overengineer
+the stack). Top-level: deviceId, nodeId, timestamp, transport,
+sequence, then optional per-category blocks: gps, environment, soil,
+rain, light, obstacle, power, rover. Every category is optional so a
+partial packet from one node doesn't require faking the rest.
+
+
+5. COMMAND SCHEMA (Phase 1 deliverable)
+--------------------------------------------
+See backend/domain/commands.js. A command has: commandId, deviceId,
+type (enum: MOVE_FORWARD, MOVE_BACKWARD, TURN_LEFT, TURN_RIGHT, STOP,
+SET_SPEED, SET_MOTOR_SPEED, EMERGENCY_STOP, START_PUMP, STOP_PUMP,
+IRRIGATE_ZONE, START_SCAN, RETURN_HOME), timestamp, source, parameters,
+and status (QUEUED/SENT/ACKNOWLEDGED/EXECUTED/FAILED/TIMEOUT). No
+transport/queue implementation yet (that's Phase 10+) — Phase 1 only
+defines the shape and a validator.
+
+
+6. DEVICE MODEL (Phase 1 deliverable)
+-------------------------------------------
+See backend/domain/devices.js: deviceType enum (CONTROLLER_NODE,
+MOTOR_NODE, SENSOR_NODE, CAMERA_NODE, ROVER), connectionStatus enum
+(ONLINE/DEGRADED/OFFLINE/UNKNOWN), gpsFixStatus enum
+(FIXED/SEARCHING/LOST), plus a plain-object shape for a device record
+(deviceId, type, firmwareVersion, lastSeen, status, battery,
+capabilities). This is the vocabulary; the actual Mongoose-backed
+device registry collection is Phase 2, not built yet.
+
+
+7. TRANSPORT ARCHITECTURE
+------------------------------
+Interface-level only in Phase 1: backend/domain/transport.js defines
+the CommunicationTransport shape (start/stop/send/onMessage) and an
+enum of transport kinds (simulation, serial, wifi, lora, esp-now). No
+concrete transport is implemented yet — Phase 11 covers LoRa
+specifically once ingestion (Phase 4) and simulation (Phase 5) exist
+to plug into.
+
+
+8. SIMULATION ARCHITECTURE
+-------------------------------
+Per the directive's Section 19 (critical constraint): simulation must
+produce the exact same telemetry envelope shape as real hardware and
+flow through the same ingestion/validation/storage path — it must
+never be a parallel fake system. Phase 1 doesn't build the simulation
+provider yet (that's Phase 5), but the domain schemas it will emit are
+now defined, so Phase 5 has a real contract to target instead of
+inventing its own shape.
+
+
+9. DATABASE CHANGES REQUIRED (future, not done in Phase 1)
+------------------------------------------------------------------
+Phase 1 adds NO new Mongoose models or collections — it's pure domain
+vocabulary (plain JS, no DB dependency), so the existing Boundary
+model and /api/boundaries routes are completely untouched. When Phase
+2+ arrive, expected new collections (one at a time, each justified
+before creation, per the directive): Device, Telemetry (time-series,
+never overwritten), Command, Event, Observation. Zone/Farm/Field
+models are deferred until zone generation is actually being built.
+
+
+10. FRONTEND CHANGES REQUIRED (future, not done in Phase 1)
+-------------------------------------------------------------------
+None yet. Phase 1 is backend-only domain modeling. Once Phase 4
+(ingestion API) and Phase 6 (realtime pipeline) exist, the frontend
+will need a Rover page (Section 27) and a realtime data hook — but
+building that against nonexistent endpoints now would just create
+mock objects the directive explicitly says to avoid.
+
+
+11. IMPLEMENTATION PHASES (from the directive, unchanged)
+-------------------------------------------------------------------
+Phase 1  Hardware-aware domain model         <- implementing now
+Phase 2  Device registry
+Phase 3  Telemetry schemas (DB-backed)
+Phase 4  Telemetry ingestion API
+Phase 5  Simulation telemetry provider
+Phase 6  Realtime telemetry pipeline
+Phase 7  Rover status dashboard
+Phase 8  GPS integration (merge with existing boundary/GPS work)
+Phase 9  Sensor integration
+Phase 10 Command architecture
+Phase 11 LoRa transport abstraction
+Phase 12 Irrigation actuator architecture
+Phase 13 Digital Twin / zones
+Phase 14 Environmental intelligence
+Phase 15 Computer vision
+Phase 16 Risk engine
+Phase 17 Alerts / n8n
+Phase 18 Advanced analytics
+
+
+WHAT PHASE 1 ACTUALLY ADDS
+------------------------------
+backend/domain/
+  devices.js     - device types, connection/GPS-fix status enums,
+                   deviceRecord shape
+  telemetry.js   - normalized telemetry envelope shape + validator
+  commands.js    - RoverCommand shape, command type enum, status enum,
+                   validator
+  events.js      - domain event type enum (ROVER_CONNECTED,
+                   GPS_FIX_ACQUIRED, LOW_BATTERY, PLANT_DETECTED, etc.)
+  transport.js   - CommunicationTransport interface shape + transport
+                   kind enum
+
+These are pure, dependency-free modules (no Mongoose, no Express) so
+every later phase — ingestion, simulation, realtime, UI — imports the
+same vocabulary instead of each layer inventing its own shape. Nothing
+existing was modified or removed.

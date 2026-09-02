@@ -1,0 +1,162 @@
+AGRIROVER — MY CURRENT UNDERSTANDING OF THE PROJECT
+=====================================================
+(Written for the user to review/correct before further work continues)
+
+
+1. WHAT THIS PROJECT IS
+------------------------
+AGRIVISION is the larger project: an agricultural rover system combining
+hardware (a physical rover with GPS, camera, sensors) and software.
+
+AGRIROVER is the name of the software side — the web application that acts
+as the "brain"/dashboard for the rover. It is not just one feature; it is
+meant to become the umbrella application that houses every software module
+of AGRIVISION under one roof, with one navbar, one backend, one database.
+
+The three spec files in /info describe three modules that were originally
+written as independent, throwaway single-page prototypes (strict "only
+index.html/style.css/script.js, no backend" constraint). That constraint
+applied to early standalone prototyping, NOT to the final product. Now that
+we're building the real thing, AgriRover supersedes that constraint: it is
+the full-stack home for all of these modules going forward.
+
+
+2. THE MODULES (from info1.txt, info2.txt, info3.txt)
+--------------------------------------------------------
+
+MODULE 1 — GPS Field Boundary Mapping (info2.txt)
+  STATUS: Built and working (this is the original 3-file AgriRover, now
+  ported into the "Map Tracking" page of the React app).
+  - Rover/user walks the boundary of a field, GPS points are collected.
+  - Raw GPS trajectory must be validated, filtered (outliers/jumps/noise),
+    smoothed, simplified, then closed into a clean boundary polygon.
+  - Calculates area (m² / hectares) and perimeter/distance.
+  - First point becomes the HOME POSITION, saved for later rover
+    return-to-base functionality.
+  - Must support a SIMULATED GPS source now, with a clean interface so a
+    REAL GPS source (NEO-6M + ESP32 telemetry) can be swapped in later
+    without changing the processing pipeline.
+  - Currently: our implementation does live GPS via the browser
+    Geolocation API and lets the user manually track a path — it does NOT
+    yet have the noise-filtering/smoothing/outlier-rejection pipeline or a
+    simulated-rover demo mode described in the spec. That pipeline is a
+    gap to potentially revisit.
+  - Boundaries can now be saved to MongoDB (new), imported/exported as
+    JSON (existing).
+
+MODULE 2 — Environmental Intelligence & Agricultural Risk Engine (info1.txt)
+  STATUS: Not started.
+  - Takes a farm's location (lat/lng, eventually full field polygon) and
+    pulls weather/climate/hydrological/satellite data.
+  - Data sources: NASA POWER, Open-Meteo, Copernicus Sentinel-2 (NDVI/
+    vegetation), GloFAS (river discharge/flood).
+  - Must use a PROVIDER ABSTRACTION: getWeatherData(), getClimateData(),
+    getFloodData(), getSatelliteData() all return normalized data; the
+    Risk Engine never talks to a specific API directly.
+  - Computes independent risk scores (0-100, with category LOW/HIGH/etc):
+    Drought, Heat Stress, Flood, Water Stress/Irrigation, Vegetation
+    Stress — plus an Overall Environmental Risk that is NOT a simple
+    average, and must be explainable (show contributing factors, not just
+    a number).
+  - Needs current weather, forecast, and historical baseline (to compute
+    anomalies — current vs. baseline is core to detecting risk).
+  - Needs an "Early Warning" section (plain-language predictive alerts).
+  - Every real data point must show source + timestamp + unit
+    (data provenance) and required attributions (Open-Meteo CC BY 4.0,
+    Copernicus notice, NASA POWER credit) must be visible.
+  - Must support both a clearly-labeled SIMULATION MODE (with demo
+    scenarios: normal/drought/heat wave/flood/multi-risk) and a real API
+    mode, switchable without changing the Risk Engine.
+  - No API secrets in the frontend — proxy through our backend.
+  - Individual provider failures must degrade gracefully, not crash the
+    app (e.g. flood data unavailable but weather still shown).
+
+MODULE 3 — Computer Vision Plant Detection (info3.txt)
+  STATUS: Not started.
+  - Uses the laptop webcam now (getUserMedia) as a stand-in for the future
+    ESP32-CAM stream. Architecture must isolate the camera source so the
+    swap later doesn't require rewriting detection/UI code.
+  - Runs a plant-detection model (YOLO/browser-compatible object
+    detection) — Stage 1 scope is ONLY "is there a plant, and where,"
+    NOT species classification, disease detection, or nutrient
+    deficiency (those are explicitly future stages, built later, in this
+    order: find plant -> identify crop -> determine health/disease ->
+    associate with GPS -> show on Digital Twin).
+  - Draws bounding boxes + confidence scores over the live feed, supports
+    multiple simultaneous detections.
+  - Must decouple camera FPS from AI inference FPS (don't run inference
+    on every frame — freezes the browser).
+  - Needs a clearly-labeled SIMULATION/mock detector mode for when a real
+    model isn't wired up yet, and a status dashboard (Camera: ONLINE/
+    OFFLINE, AI Engine: READY/LOADING/ERROR, Mode: LIVE/SIMULATION, FPS,
+    inference time).
+
+
+3. THE BIGGER PICTURE / EVENTUAL INTEGRATION
+-----------------------------------------------
+All three modules are meant to eventually connect into one pipeline:
+
+  GPS Field Mapping -> Digital Twin (visual model of the field)
+  Environmental Intelligence -> feeds risk data onto the Digital Twin
+  Rover Sensors + Computer Vision -> feed GPS-tagged observations
+        (e.g. "disease detected at Zone B-7") onto the Digital Twin
+  Agricultural Risk Engine -> combines all of the above into a unified
+        confidence-scored risk/event system
+  Early Warning -> triggers -> n8n -> SMS/WhatsApp -> Farmer
+
+The field itself is expected to eventually be divided into ZONES
+(Zone A/B/C/D...), each with its own weather, soil moisture, vegetation
+health, disease observations, rover path history, and risk scores — this
+isn't built now but the data model should not actively block it later.
+
+Recurring architectural principles across all three specs that I intend to
+carry forward into the real app:
+  - Provider/source abstraction (swap simulated <-> real without touching
+    downstream logic) — for GPS, weather/climate/satellite, and camera.
+  - Simulation is always clearly labeled as such, never presented as real
+    data.
+  - Explainability: every risk score/detection shows WHY, not just a
+    number.
+  - Graceful degradation: one provider/module failing must not crash the
+    rest of the app.
+  - Data provenance: source + timestamp + unit shown for real data.
+  - No secrets in the frontend.
+
+
+4. CURRENT TECHNICAL STATE OF AGRIROVER (as of now)
+------------------------------------------------------
+  - frontend/  — React + Vite + React Router. Navbar currently has one
+    link: "Map Tracking". Leaflet map, GPS tracking, boundary drawing,
+    area/distance calculation, import/export JSON, and Save-to-database
+    all ported from the original vanilla-JS prototype and confirmed
+    working in-browser.
+  - backend/   — Express + Mongoose. One resource so far: Boundary
+    (points, area, distance, timestamps). Connected to a MongoDB Atlas
+    cluster (roveragri07_db_user). CRUD routes at /api/boundaries.
+  - No authentication yet (explicitly deferred by you earlier).
+  - Repo is connected to GitHub (buildathon111-ship-it/gps-test); commits
+    are being pushed after each meaningful chunk of work, .env is
+    gitignored so credentials aren't exposed.
+  - info/ folder holds the three original spec docs (kept as reference
+    documentation, not implementation constraints anymore).
+
+
+5. OPEN QUESTIONS / THINGS I'M NOT SURE ABOUT
+-------------------------------------------------
+  - Should Module 1 (GPS mapping) get the noise-filtering/smoothing/
+    outlier-rejection pipeline and simulated-rover demo mode that the
+    spec calls for, or is the current "live GPS, manual walk" version
+    good enough for now and that pipeline is a later refinement?
+  - Build order across Module 2 (Environmental) and Module 3 (Computer
+    Vision) — waiting on your direction.
+  - Whether a Dashboard/Overview home page (aggregating all modules) is
+    wanted before or after the individual modules are built.
+  - How real the Environmental Intelligence data needs to be right now —
+    i.e., do we wire up real Open-Meteo/NASA POWER calls immediately, or
+    build the full UI against simulation mode first and add live
+    providers after?
+  - Whether Plant Detection needs a real ML model from day one, or should
+    start in simulation/mock-detector mode given "Stage 1" framing in the
+    spec.
+  - Whether zones, digital twin visualization, and n8n/notification
+    integration are near-term or genuinely later-phase work.
