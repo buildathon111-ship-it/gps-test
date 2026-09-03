@@ -155,7 +155,12 @@ const CustomModel = {
             if (typeof tflite === 'undefined') {
                 throw new Error('tfjs-tflite not loaded');
             }
-            this.model = await tflite.loadTFLiteModel('model/plant_detector.tflite');
+            // Pin the SIMD+multithreaded WASM binary — without this tfjs-tflite
+            // can silently fall back to the slow single-threaded build.
+            tflite.setWasmPath('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite/dist/');
+            this.model = await tflite.loadTFLiteModel('model/plant_detector.tflite', {
+                numThreads: navigator.hardwareConcurrency || 4
+            });
             return true;
         } catch (err) {
             console.log('No custom model found (model/plant_detector.tflite) — will use COCO-SSD:', err.message);
