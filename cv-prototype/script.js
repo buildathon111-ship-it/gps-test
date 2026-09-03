@@ -152,10 +152,13 @@ const CustomModel = {
                 if (meta.names) this.classNames = meta.names;
                 if (meta.imgsz) this.imgsz = meta.imgsz;
             }
-            this.model = await tf.loadGraphModel('model/model.json');
+            if (typeof tflite === 'undefined') {
+                throw new Error('tfjs-tflite not loaded');
+            }
+            this.model = await tflite.loadTFLiteModel('model/plant_detector.tflite');
             return true;
         } catch (err) {
-            console.log('No custom model found (model/model.json) — will use COCO-SSD:', err.message);
+            console.log('No custom model found (model/plant_detector.tflite) — will use COCO-SSD:', err.message);
             return false;
         }
     },
@@ -164,21 +167,28 @@ const CustomModel = {
         const srcW = frame.videoWidth || frame.width;
         const srcH = frame.videoHeight || frame.height;
 
+        // onnx2tf-exported TFLite models take channels-last (NHWC) input.
         const input = tf.tidy(() => tf.browser.fromPixels(frame)
             .resizeBilinear([this.imgsz, this.imgsz])
             .div(255.0)
             .expandDims(0));
 
-        let output = await this.model.executeAsync(input);
+        const output = this.model.predict(input);
         input.dispose();
-        if (Array.isArray(output)) output = output[0];
 
         const { boxesXYXY, scores, classIds } = tf.tidy(() => {
-            // YOLOv8 output: [1, 4 + numClasses, numAnchors] -> [numAnchors, 4 + numClasses]
-            const transposed = output.transpose([0, 2, 1]).squeeze([0]);
             const numClasses = this.classNames.length;
-            const boxesXYWH = transposed.slice([0, 0], [-1, 4]);
-            const classScores = transposed.slice([0, 4], [-1, numClasses]);
+            const featDim = 4 + numClasses;
+            // YOLOv8 export output is either [1, featDim, numAnchors] or
+            // [1, numAnchors, featDim] depending on the export path — detect
+            // which axis holds the (box + class) features and normalize to
+            // [numAnchors, featDim].
+            const feats = output.shape[1] === featDim
+                ? output.transpose([0, 2, 1]).squeeze([0])
+                : output.squeeze([0]);
+
+            const boxesXYWH = feats.slice([0, 0], [-1, 4]);
+            const classScores = feats.slice([0, 4], [-1, numClasses]);
 
             const x = boxesXYWH.slice([0, 0], [-1, 1]);
             const y = boxesXYWH.slice([0, 1], [-1, 1]);
