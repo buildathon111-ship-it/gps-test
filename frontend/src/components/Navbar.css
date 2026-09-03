@@ -29,7 +29,7 @@
 }
 
 .navbar h1 {
-    font-size: 17px;
+    font-size: var(--fs-xl, 19px);
     font-weight: 800;
     background: linear-gradient(135deg, #4ade80, #22d3ee);
     -webkit-background-clip: text;
@@ -44,20 +44,20 @@
 }
 
 .nav-link {
-    color: #94a3b8;
+    color: #e2e8f0;
     text-decoration: none;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 8px 14px;
+    padding: 8px 16px;
     border-radius: 10px;
+    background: rgba(148, 163, 184, 0.08);
     transition: all 0.2s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: normal;
 }
 
 .nav-link:hover {
-    color: #e2e8f0;
-    background: rgba(148, 163, 184, 0.08);
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.12);
 }
 
 .nav-link.active {
@@ -67,12 +67,10 @@
 
 @media (min-width: 600px) {
     .navbar { height: 56px; padding: 0 20px; }
-    .navbar h1 { font-size: 19px; }
     .logo { font-size: 28px; }
 }
 
 @media (min-width: 900px) {
     .navbar { height: 60px; padding: 0 28px; }
-    .navbar h1 { font-size: 21px; }
     .logo { font-size: 30px; }
 }

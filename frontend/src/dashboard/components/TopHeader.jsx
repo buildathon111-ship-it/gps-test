@@ -1,4 +1,5 @@
 import { rover, SIMULATION_MODE } from '../data/simulation';
+import ThemeToggle from './ThemeToggle';
 
 function TopHeader({ title, subtitle }) {
     const now = new Date();
@@ -29,6 +30,7 @@ function TopHeader({ title, subtitle }) {
                 <button className="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container">
                     <span className="material-symbols-outlined text-[20px]">search</span>
                 </button>
+                <ThemeToggle />
             </div>
         </header>
     );

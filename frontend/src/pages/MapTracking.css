@@ -1,3 +1,21 @@
+:root {
+    /* Type scale (#1) */
+    --fs-2xs: 10px;  /* quick-label, stat-label, coord-label */
+    --fs-xs: 11px;   /* info-card h2, log-entry */
+    --fs-sm: 12px;   /* quick-value, .btn */
+    --fs-md: 14px;   /* coord-value */
+    --fs-lg: 16px;   /* stat-value */
+    --fs-xl: 19px;   /* navbar h1 */
+
+    /* Radius scale (#2) */
+    --radius-sm: 8px;   /* log-entry, small-screen icon buttons */
+    --radius-md: 12px;  /* buttons, stat-cell, icon buttons */
+    --radius-lg: 16px;  /* info-card, control-panel top corners */
+
+    /* Shared panel gutter (#9) */
+    --panel-gutter: 10px;
+}
+
 .map-tracking-page {
     position: fixed;
     inset: 0;
@@ -43,7 +61,7 @@
 .layer-btn {
     width: 46px;
     height: 46px;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     border: none;
     background: rgba(15, 23, 42, 0.88);
     backdrop-filter: blur(12px);
@@ -129,7 +147,7 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid rgba(148, 163, 184, 0.08);
-    border-radius: 24px 24px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     z-index: 1000;
     overflow: hidden;
     max-height: 64px;
@@ -158,7 +176,7 @@
     width: 40px;
     height: 4px;
     background: rgba(148, 163, 184, 0.25);
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
     transition: all 0.2s ease;
 }
 
@@ -182,7 +200,7 @@
 }
 
 .quick-label {
-    font-size: 9px;
+    font-size: var(--fs-2xs);
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -190,7 +208,7 @@
 }
 
 .quick-value {
-    font-size: 12px;
+    font-size: var(--fs-sm);
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     color: #e2e8f0;
     font-weight: 600;
@@ -218,7 +236,7 @@
 .panel-content {
     display: none;
     flex-direction: column;
-    gap: 12px;
+    gap: 20px;
     padding: 0 14px 20px;
 }
 
@@ -230,7 +248,7 @@
 .info-card {
     background: rgba(30, 41, 59, 0.5);
     border: 1px solid rgba(148, 163, 184, 0.08);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     padding: 14px;
     transition: border-color 0.2s ease;
 }
@@ -239,34 +257,45 @@
     border-color: rgba(148, 163, 184, 0.15);
 }
 
-.info-card h3 {
-    font-size: 11px;
+.info-card h2 {
+    font-size: var(--fs-xs);
     color: #94a3b8;
-    margin-bottom: 12px;
+    margin: 0 0 12px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.log-card summary {
+    font-size: var(--fs-xs);
+    color: #94a3b8;
+    font-weight: 700;
+    margin-bottom: 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.log-card summary::-webkit-details-marker {
+    display: none;
 }
 
 /* ===== Coordinate Grid ===== */
 .coord-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: var(--panel-gutter);
 }
 
 .coord-cell {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
     gap: 4px;
 }
 
-.coord-cell:last-child {
-    grid-column: 1 / -1;
-}
-
 .coord-label {
-    font-size: 10px;
+    font-size: var(--fs-2xs);
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -274,17 +303,18 @@
 }
 
 .coord-value {
-    font-size: 13px;
+    font-size: var(--fs-md);
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     color: #f1f5f9;
     word-break: break-all;
+    text-align: right;
 }
 
 /* ===== Stat Grid ===== */
 .stat-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: var(--panel-gutter);
 }
 
 .stat-cell {
@@ -294,7 +324,7 @@
     gap: 4px;
     padding: 10px 8px;
     background: rgba(15, 23, 42, 0.5);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(148, 163, 184, 0.05);
     transition: all 0.2s ease;
 }
@@ -309,19 +339,29 @@
 }
 
 .stat-value {
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 700;
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     color: #f1f5f9;
 }
 
+.stat-unit {
+    font-size: 0.7em;
+    font-weight: 500;
+    color: #64748b;
+}
+
 .stat-cell.highlight .stat-value {
     color: #4ade80;
-    font-size: 17px;
+}
+
+.stat-cell.highlight .stat-unit {
+    color: #4ade80;
+    opacity: 0.7;
 }
 
 .stat-label {
-    font-size: 9px;
+    font-size: var(--fs-2xs);
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -332,14 +372,14 @@
 .button-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: var(--panel-gutter);
 }
 
 .btn {
     padding: 14px 12px;
     border: none;
-    border-radius: 14px;
-    font-size: 12px;
+    border-radius: var(--radius-md);
+    font-size: var(--fs-sm);
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -399,56 +439,36 @@
     box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
 
-.btn-finish {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.btn-finish:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-}
-
-.btn-import {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    color: white;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-}
-
-.btn-import:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-}
-
-.btn-export {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: white;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.btn-export:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
-}
-
+/* Secondary action group (Finish/Import/Export/Save) — one neutral style
+   instead of a unique saturated color per button (#3, #8, #12) */
+.btn-finish,
+.btn-import,
+.btn-export,
 .btn-save {
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
-    color: white;
-    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+    background: rgba(51, 65, 85, 0.9);
+    color: #f1f5f9;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    box-shadow: none;
 }
 
+.btn-finish:hover:not(:disabled),
+.btn-import:hover:not(:disabled),
+.btn-export:hover:not(:disabled),
 .btn-save:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+    background: rgba(71, 85, 105, 0.95);
+    box-shadow: none;
 }
 
 .btn-clear {
-    background: rgba(30, 41, 59, 0.6);
-    color: #94a3b8;
-    border: 1px solid rgba(148, 163, 184, 0.1);
+    background: rgba(51, 65, 85, 0.9);
+    color: #f1f5f9;
+    border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .btn-clear:hover {
-    background: rgba(30, 41, 59, 0.8);
-    color: #e2e8f0;
-    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(71, 85, 105, 0.95);
+    color: #ffffff;
+    border-color: rgba(148, 163, 184, 0.35);
 }
 
 /* ===== Log ===== */
@@ -466,11 +486,11 @@
 }
 
 .log-entry {
-    font-size: 10px;
+    font-size: var(--fs-2xs);
     color: #64748b;
     padding: 5px 8px;
     background: rgba(15, 23, 42, 0.6);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     line-height: 1.4;
     border-left: 2px solid transparent;
@@ -588,7 +608,6 @@
 
     .stat-grid { grid-template-columns: 1fr 1fr; }
     .log-container { max-height: 160px; }
-    .btn { font-size: 12px; }
     .info-card { padding: 14px; }
 }
 
@@ -605,13 +624,9 @@
     .map-buttons { top: 72px; }
     .resize-handle { top: 60px; }
 
-    .btn { font-size: 13px; padding: 14px 20px; }
+    .btn { padding: 14px 20px; }
     .info-card { padding: 18px; }
-    .info-card h3 { font-size: 12px; }
-    .coord-value { font-size: 14px; }
-    .stat-value { font-size: 17px; }
     .log-container { max-height: 200px; }
-    .log-entry { font-size: 11px; }
 }
 
 /* ============================================
@@ -620,7 +635,7 @@
 @media (max-height: 500px) and (orientation: landscape) {
     .control-panel {
         max-height: 55vh;
-        border-radius: 16px 0 0 0;
+        border-radius: var(--radius-lg) 0 0 0;
     }
 
     .control-panel.expanded {
@@ -629,11 +644,9 @@
 
     .stat-grid { grid-template-columns: repeat(4, 1fr); }
     .button-grid { grid-template-columns: repeat(3, 1fr); }
-    .btn { padding: 8px 6px; font-size: 10px; min-height: 38px; border-radius: 10px; }
-    .coord-value { font-size: 11px; }
-    .stat-value { font-size: 13px; }
+    .btn { padding: 8px 6px; min-height: 38px; }
     .info-card { padding: 10px; }
-    .info-card h3 { font-size: 10px; margin-bottom: 8px; }
+    .info-card h2 { margin-bottom: 8px; }
 }
 
 /* ============================================
@@ -641,9 +654,7 @@
    ============================================ */
 @media (min-width: 1200px) {
     .control-panel { width: var(--panel-width, 600px); }
-    .btn { font-size: 14px; padding: 16px 24px; }
-    .stat-value { font-size: 18px; }
-    .coord-value { font-size: 15px; }
+    .btn { padding: 16px 24px; }
 }
 
 /* ============================================
@@ -655,28 +666,21 @@
         width: 40px;
         height: 40px;
         font-size: 17px;
-        border-radius: 12px;
     }
 
-    .quick-value { font-size: 10px; }
-    .quick-label { font-size: 8px; }
-    .stat-value { font-size: 14px; }
-    .stat-cell.highlight .stat-value { font-size: 15px; }
+    .quick-value { font-size: var(--fs-2xs); }
+    .quick-label { font-size: var(--fs-2xs); }
     .stat-cell { padding: 8px 6px; }
 
     .btn {
         padding: 12px 6px;
-        font-size: 10px;
-        border-radius: 12px;
         min-height: 44px;
     }
 
-    .coord-value { font-size: 11px; }
-    .coord-label { font-size: 9px; }
     .button-grid { gap: 6px; }
-    .info-card { padding: 10px; border-radius: 12px; }
-    .info-card h3 { font-size: 10px; margin-bottom: 8px; }
-    .panel-content { gap: 8px; padding: 0 10px 14px; }
+    .info-card { padding: 10px; }
+    .info-card h2 { margin-bottom: 8px; }
+    .panel-content { gap: 16px; padding: 0 10px 14px; }
 }
 
 /* ============================================
@@ -685,7 +689,7 @@
 @media (max-width: 320px) {
     .quick-stats { padding: 2px 8px 8px; }
     .quick-stat { gap: 1px; }
-    .btn { font-size: 9px; min-height: 40px; }
+    .btn { min-height: 40px; }
     .stat-grid { gap: 6px; }
     .coord-grid { gap: 6px; }
 }

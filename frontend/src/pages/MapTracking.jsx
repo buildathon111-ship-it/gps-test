@@ -700,7 +700,7 @@ function MapTracking() {
 
                 <div className="panel-content">
                     <div className="info-card">
-                        <h3>📍 Current Position</h3>
+                        <h2>📍 Current Position</h2>
                         <div className="coord-grid">
                             <div className="coord-cell">
                                 <span className="coord-label">Latitude</span>
@@ -718,7 +718,7 @@ function MapTracking() {
                     </div>
 
                     <div className="info-card">
-                        <h3>📐 Boundary Stats</h3>
+                        <h2>📐 Boundary Stats</h2>
                         <div className="stat-grid">
                             <div className="stat-cell">
                                 <span className="stat-value">{pointCount}</span>
@@ -729,7 +729,10 @@ function MapTracking() {
                                 <span className="stat-label">Distance</span>
                             </div>
                             <div className="stat-cell highlight">
-                                <span className="stat-value">{totalArea.sqm}</span>
+                                <span className="stat-value">
+                                    {totalArea.sqm.split(' ')[0]}
+                                    <span className="stat-unit"> {totalArea.sqm.split(' ').slice(1).join(' ')}</span>
+                                </span>
                                 <span className="stat-label">Area</span>
                             </div>
                             <div className="stat-cell">
@@ -747,13 +750,13 @@ function MapTracking() {
                             ✓ Finish
                         </button>
                         <button className="btn btn-import" onClick={() => document.getElementById('importFile').click()}>
-                            📂 Import
+                            ⇧ Import
                         </button>
                         <button className="btn btn-export" onClick={exportBoundary} disabled={!exportEnabled}>
-                            📥 Export
+                            ⇩ Export
                         </button>
                         <button className="btn btn-save" onClick={handleSaveToDatabase} disabled={!saveEnabled || saving}>
-                            {saving ? '⏳ Saving...' : '💾 Save'}
+                            {saving ? '⏳ Saving...' : '▣ Save'}
                         </button>
                         <button className="btn btn-clear" onClick={clearAll}>
                             ✕ Clear
@@ -761,14 +764,14 @@ function MapTracking() {
                     </div>
                     <input type="file" id="importFile" accept=".json" style={{ display: 'none' }} onChange={importBoundary} />
 
-                    <div className="info-card log-card">
-                        <h3>📋 Log</h3>
+                    <details className="info-card log-card" open>
+                        <summary>📋 Log</summary>
                         <div className="log-container" ref={logContainerRef}>
                             {logs.map((l, i) => (
                                 <div key={i} className={`log-entry ${l.type}`}>{l.msg}</div>
                             ))}
                         </div>
-                    </div>
+                    </details>
                 </div>
             </div>
         </div>
