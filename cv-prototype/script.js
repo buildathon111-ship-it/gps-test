@@ -297,8 +297,26 @@ const DetectionEngine = {
         }
 
         try {
-            // Use COCO-SSD for plant detection
-            const predictions = await this.model.detect(frame);
+            // Use COCO-SSD for plant detection. Pass a lower raw minScore
+            // (default is 0.5) so weaker plant-class candidates aren't
+            // discarded before we even get to look at them — COCO-SSD's
+            // "potted plant" class is narrow (trained mostly on full houseplants
+            // with a visible pot) and often scores lower on close-ups, seedling
+            // trays, or plants partly occluded by a hand. This is safe because
+            // the class filter below still enforces precision: only real
+            // plant-adjacent classes survive, regardless of how low the
+            // threshold is set here.
+            const predictions = await this.model.detect(frame, 20, 0.25);
+
+            // Debug visibility: log everything COCO-SSD actually saw in this
+            // frame (class + confidence), not just what passed our plant
+            // filter. Open devtools console to check whether "no plant
+            // detected" means the model saw nothing plant-like at all, or
+            // saw something plant-like below the class-match filter below.
+            if (predictions.length > 0) {
+                console.debug('[AGRIVISION] raw COCO-SSD predictions:',
+                    predictions.map(p => `${p.class} ${(p.score * 100).toFixed(1)}%`).join(', '));
+            }
 
             // Filter for plant-like objects only. COCO-SSD's 80 classes only
             // include "potted plant" and "vase" as plant-adjacent categories
