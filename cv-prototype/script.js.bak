@@ -111,7 +111,7 @@ const CameraManager = {
     },
 
     getFrame() {
-        if (!this.isActive || this.video.readyState !== this.video.HAVE_ENOUGH_DATA) {
+        if (!this.isActive || !this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
             return null;
         }
         return this.video;
@@ -300,24 +300,23 @@ const DetectionEngine = {
             // Use COCO-SSD for plant detection
             const predictions = await this.model.detect(frame);
 
-            // Filter for plant-like objects only. COCO-SSD's 80 classes only
-            // include "potted plant" and "vase" as plant-adjacent categories
-            // (there is no generic "plant"/"flowers" class in the stock model,
-            // but we keep those strings in case a future model version adds
-            // them). We deliberately do NOT fall back to "any confident
-            // object" here — that was the bug: a person, chair, etc. detected
-            // with high confidence was being mislabeled and counted as a
-            // plant whenever no real plant was in frame.
+            // Filter for plant-like objects
+            // COCO classes: 58=potted plant, 59=plant, 60=flowers, etc.
             const plantClasses = ['potted plant', 'plant', 'flowers', 'vase'];
-            const results = predictions.filter(pred => {
+            const plantDetections = predictions.filter(pred => {
                 const className = pred.class.toLowerCase();
                 return plantClasses.some(pc => className.includes(pc));
             });
 
+            // If no specific plant classes, accept confidence > 0.6 for any object
+            // (plant detection is Stage 1, so we're lenient here)
+            const allWithHighConfidence = predictions.filter(pred => pred.score > 0.6);
+            const results = plantDetections.length > 0 ? plantDetections : allWithHighConfidence;
+
             this.inferenceTime = performance.now() - startTime;
 
             return results.map(detection => ({
-                className: detection.class,
+                className: detection.class || 'Plant',
                 confidence: (detection.score * 100).toFixed(1),
                 boundingBox: {
                     x: detection.bbox[0],
@@ -707,15 +706,12 @@ const UIManager = {
         if (stats.plantCount === 0) {
             detectionsList.innerHTML = '<div class="empty-state">No plants detected</div>';
         } else {
-            detectionsList.innerHTML = StatsManager.detections.map((det, idx) => {
-                const label = (det.className || 'plant').replace(/\b\w/g, c => c.toUpperCase());
-                return `
+            detectionsList.innerHTML = StatsManager.detections.map((det, idx) => `
                 <div class="detection-item">
-                    <span class="detection-name">${label} ${idx + 1}</span>
+                    <span class="detection-name">Plant ${idx + 1}</span>
                     <span class="detection-confidence">${det.confidence}%</span>
                 </div>
-            `;
-            }).join('');
+            `).join('');
         }
     },
 
