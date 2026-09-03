@@ -172,10 +172,12 @@ const CustomModel = {
         const srcW = frame.videoWidth || frame.width;
         const srcH = frame.videoHeight || frame.height;
 
-        // onnx2tf-exported TFLite models take channels-last (NHWC) input.
+        // The exported model expects channels-first (NCHW) input, matching
+        // Ultralytics' native TFLite export layout — [1, 3, imgsz, imgsz].
         const input = tf.tidy(() => tf.browser.fromPixels(frame)
             .resizeBilinear([this.imgsz, this.imgsz])
             .div(255.0)
+            .transpose([2, 0, 1])
             .expandDims(0));
 
         const output = this.model.predict(input);

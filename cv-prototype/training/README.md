@@ -16,14 +16,16 @@ tighter boxes on real plant/crop footage than the generic model.
      `plant` class). Default is ~1500 images/class (~10k+ images); raise
      `MAX_SAMPLES_PER_CLASS` in the notebook for more data.
    - Fine-tune YOLOv8n for 60 epochs.
-   - Export the trained model to TensorFlow.js format.
-   - Download `plant_detector_tfjs.zip`.
-4. Unzip it and copy its contents (`model.json`, the `*.bin` shard files, and
-   `metadata.json`) into `cv-prototype/model/` in this repo.
+   - Export the trained model to ONNX, then convert it to a channels-last
+     (NHWC) TensorFlow Lite model via `onnx2tf` — this is the format
+     `script.js`'s `CustomModel` runtime (`tfjs-tflite`) expects.
+   - Download `plant_detector_tflite.zip`.
+4. Unzip it and copy `plant_detector.tflite` and `metadata.json` into
+   `cv-prototype/model/` in this repo.
 5. Reload the AGRIVISION page (with `python -m http.server 8080` still
-   running from `cv-prototype/`). `script.js` looks for `model/model.json` on
-   startup and uses it automatically — falling back to COCO-SSD if the
-   folder is empty.
+   running from `cv-prototype/`). `script.js` looks for
+   `model/plant_detector.tflite` on startup and uses it automatically —
+   falling back to COCO-SSD if it isn't found.
 
 ## Notes
 
