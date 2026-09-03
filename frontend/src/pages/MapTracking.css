@@ -14,16 +14,49 @@
 
     /* Shared panel gutter (#9) */
     --panel-gutter: 10px;
+
+    /* Side-panel width (tablet default). Only .control-panel reads this —
+       it's the panel's own flex-basis. Because the map, buttons and
+       resize handle are now flex/absolute children of the *map section*
+       rather than independently offset from the viewport edge, they can
+       no longer disagree with the panel about where it starts. JS only
+       overrides this during an active resize-drag. */
+    --panel-width: 340px;
 }
 
+/* This page is embedded inside the dashboard's <main> (DashboardLayout),
+   not a full-viewport route of its own, so it gets an explicit height
+   instead of position:fixed — 10rem accounts for the sticky header (4rem)
+   + main's mobile padding (1rem top + 5rem bottom for MobileBottomNav);
+   7rem accounts for the header + main's desktop padding (1.5rem top/bottom). */
 .map-tracking-page {
-    position: fixed;
-    inset: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: calc(100vh - 10rem);
+    min-height: 420px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+@media (min-width: 768px) {
+    .map-tracking-page {
+        height: calc(100vh - 7rem);
+    }
 }
 
 /* ===== Map ===== */
+.map-section {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+}
+
 #map {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 1;
     background: #1e293b;
@@ -137,12 +170,11 @@
     100% { transform: scale(3.5); opacity: 0; }
 }
 
-/* ===== Bottom Sheet Panel ===== */
+/* ===== Bottom Sheet Panel (mobile) / Side Panel (tablet+) ===== */
 .control-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: relative;
+    flex-shrink: 0;
+    width: 100%;
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(15, 23, 42, 0.99));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -157,7 +189,7 @@
 }
 
 .control-panel.expanded {
-    max-height: 85vh;
+    max-height: 60%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 }
@@ -538,13 +570,15 @@
    TABLET (600px–899px) — Side panel with resize
    ============================================ */
 @media (min-width: 600px) {
+    .map-tracking-page {
+        flex-direction: row;
+    }
+
     .control-panel {
-        left: auto;
-        right: 0;
-        top: 56px;
-        width: var(--panel-width, 340px);
+        flex: 0 0 var(--panel-width);
+        width: var(--panel-width);
         max-height: none;
-        height: auto;
+        height: 100%;
         border-radius: 0;
         border-left: 1px solid rgba(148, 163, 184, 0.08);
         border-top: none;
@@ -558,23 +592,12 @@
     .panel-handle { display: none; }
     .quick-stats { display: none; }
 
-    #map {
-        right: var(--panel-width, 340px);
-        top: 56px;
-        bottom: 0;
-    }
-
-    .map-buttons {
-        right: calc(var(--panel-width, 340px) + 12px);
-        top: 68px;
-    }
-
     .resize-handle {
         display: block;
-        position: fixed;
-        top: 56px;
+        position: absolute;
+        top: 0;
         bottom: 0;
-        right: var(--panel-width, 340px);
+        right: 0;
         width: 6px;
         background: rgba(148, 163, 184, 0.08);
         cursor: col-resize;
@@ -615,14 +638,9 @@
    DESKTOP (≥900px) — Wider panel default
    ============================================ */
 @media (min-width: 900px) {
-    .control-panel {
-        top: 60px;
-        width: var(--panel-width, 600px);
+    :root {
+        --panel-width: 600px;
     }
-
-    #map { top: 60px; }
-    .map-buttons { top: 72px; }
-    .resize-handle { top: 60px; }
 
     .btn { padding: 14px 20px; }
     .info-card { padding: 18px; }
@@ -634,12 +652,12 @@
    ============================================ */
 @media (max-height: 500px) and (orientation: landscape) {
     .control-panel {
-        max-height: 55vh;
+        max-height: 55%;
         border-radius: var(--radius-lg) 0 0 0;
     }
 
     .control-panel.expanded {
-        max-height: 92vh;
+        max-height: 92%;
     }
 
     .stat-grid { grid-template-columns: repeat(4, 1fr); }
@@ -653,7 +671,6 @@
    LARGE DESKTOP (≥1200px) — Extra spacious
    ============================================ */
 @media (min-width: 1200px) {
-    .control-panel { width: var(--panel-width, 600px); }
     .btn { padding: 16px 24px; }
 }
 

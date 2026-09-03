@@ -100,6 +100,10 @@ function MapTracking() {
 
         addLog('Map initialized.', 'info');
 
+        // Guard against the map being sized before the panel/header layout
+        // has settled (e.g. web fonts shifting header height on first paint).
+        setTimeout(() => map.invalidateSize(), 0);
+
         const onResize = () => setTimeout(() => map.invalidateSize(), 100);
         window.addEventListener('resize', onResize);
 
@@ -573,15 +577,17 @@ function MapTracking() {
         }
 
         function onTouchMove(e) {
+            const containerHeight = panel.parentElement.getBoundingClientRect().height;
             const deltaY = startY - e.touches[0].clientY;
-            const newHeight = Math.max(60, Math.min(startHeight + deltaY, window.innerHeight * 0.85));
+            const newHeight = Math.max(60, Math.min(startHeight + deltaY, containerHeight * 0.85));
             panel.style.maxHeight = newHeight + 'px';
         }
 
         function onTouchEnd() {
             panel.style.transition = '';
+            const containerHeight = panel.parentElement.getBoundingClientRect().height;
             const currentHeight = panel.offsetHeight;
-            const threshold = window.innerHeight * 0.35;
+            const threshold = containerHeight * 0.35;
 
             if (currentHeight > threshold) {
                 setPanelExpanded(true);
@@ -625,17 +631,14 @@ function MapTracking() {
 
         function onPointerMove(e) {
             if (!isResizing) return;
-            const x = e.clientX;
-            const panelWidth = window.innerWidth - x;
+            // Measured against the page's own container (not window.innerWidth) so
+            // resizing works correctly when embedded next to the dashboard sidebar.
+            const containerRect = panel.parentElement.getBoundingClientRect();
+            const panelWidth = containerRect.right - e.clientX;
             const clamped = Math.max(minPanel, Math.min(maxPanel, panelWidth));
 
             document.documentElement.style.setProperty('--panel-width', clamped + 'px');
             panel.style.width = clamped + 'px';
-
-            const mapBtns = document.querySelector('.map-buttons');
-            if (mapBtns) {
-                mapBtns.style.right = (clamped + 12) + 'px';
-            }
 
             if (mapRef.current) {
                 setTimeout(() => mapRef.current.invalidateSize(), 10);
@@ -661,18 +664,20 @@ function MapTracking() {
 
     return (
         <div className="map-tracking-page">
-            <div id="map" ref={mapContainerRef}></div>
+            <div className="map-section">
+                <div id="map" ref={mapContainerRef}></div>
 
-            <div className="map-buttons">
-                <button id="centerBtn" className={`center-btn${followMode ? ' locate-on' : ''}`} onClick={centerOnMe} title="Center on my location">
-                    📍
-                </button>
-                <button id="layerBtn" className={`layer-btn${isSatellite ? ' active-satellite' : ''}`} onClick={toggleMapLayer} title="Toggle satellite/street map">
-                    🛰️
-                </button>
+                <div className="map-buttons">
+                    <button id="centerBtn" className={`center-btn${followMode ? ' locate-on' : ''}`} onClick={centerOnMe} title="Center on my location">
+                        📍
+                    </button>
+                    <button id="layerBtn" className={`layer-btn${isSatellite ? ' active-satellite' : ''}`} onClick={toggleMapLayer} title="Toggle satellite/street map">
+                        🛰️
+                    </button>
+                </div>
+
+                <div id="resizeHandle" className="resize-handle"></div>
             </div>
-
-            <div id="resizeHandle" className="resize-handle"></div>
 
             <div id="controlPanel" className={`control-panel${panelExpanded ? ' expanded' : ''}`}>
                 <div className="panel-handle" onClick={togglePanel}>

@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
 import MapTracking from './pages/MapTracking';
 import DashboardLayout from './dashboard/components/DashboardLayout';
 import Overview from './dashboard/pages/Overview';
@@ -13,22 +12,13 @@ import RiskIntel from './dashboard/pages/RiskIntel';
 import Alerts from './dashboard/pages/Alerts';
 import Reports from './dashboard/pages/Reports';
 
-function GpsMappingPage() {
-    return (
-        <>
-            <Navbar />
-            <MapTracking />
-        </>
-    );
-}
-
 function App() {
     return (
         <Routes>
-            <Route path="/gps-mapping" element={<GpsMappingPage />} />
             <Route element={<DashboardLayout />}>
                 <Route path="/" element={<Overview />} />
                 <Route path="/field-map" element={<FieldMap />} />
+                <Route path="/gps-mapping" element={<MapTracking />} />
                 <Route path="/rover" element={<RoverControl />} />
                 <Route path="/ai-vision" element={<AIVision />} />
                 <Route path="/crop-health" element={<CropHealth />} />

@@ -6,6 +6,7 @@ import MobileBottomNav from './MobileBottomNav';
 const PAGE_META = {
     '/': { title: 'Good morning, Commander', subtitle: 'Demo Farm · Sector A · Command Center' },
     '/field-map': { title: 'Field Map', subtitle: 'GIS Intelligence' },
+    '/gps-mapping': { title: 'GPS Mapping', subtitle: 'Field Boundary Calibration' },
     '/rover': { title: 'Rover Control', subtitle: 'Command Cockpit' },
     '/ai-vision': { title: 'AI Vision', subtitle: 'Real-time Detection' },
     '/crop-health': { title: 'Crop Health', subtitle: 'Analytics Dashboard' },
