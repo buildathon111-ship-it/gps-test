@@ -56,22 +56,32 @@ const CameraManager = {
 
     async init() {
         this.video = document.getElementById('cameraFeed');
+
+        // Prefer a rear camera (for a future handheld/rover mount) but never
+        // require one — most laptops only expose a front-facing webcam, and
+        // a hard 'environment' constraint throws OverconstrainedError there.
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
-                    facingMode: 'environment'
+                    facingMode: { ideal: 'environment' }
                 },
                 audio: false
             });
-            this.video.srcObject = this.stream;
-            return true;
         } catch (err) {
-            console.error('Camera initialization failed:', err);
-            UIManager.showError(`Camera Error: ${err.message}`);
-            return false;
+            console.warn('Preferred camera constraints failed, retrying with a basic video request:', err);
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            } catch (fallbackErr) {
+                console.error('Camera initialization failed:', fallbackErr);
+                UIManager.showError(`Camera Error: ${fallbackErr.message}`);
+                return false;
+            }
         }
+
+        this.video.srcObject = this.stream;
+        return true;
     },
 
     async start() {
@@ -124,8 +134,100 @@ const CameraManager = {
 // 2. DETECTION ENGINE ABSTRACTION LAYER
 // ============================================================================
 
+// Custom plant detector (YOLOv8, trained via training/train_plant_detector.ipynb
+// and exported to TF.js). Loaded from model/model.json when present; the app
+// falls back to COCO-SSD when it isn't (e.g. before training has been run).
+const CustomModel = {
+    model: null,
+    classNames: ['plant'],
+    imgsz: 640,
+    scoreThreshold: 0.4,
+    iouThreshold: 0.45,
+
+    async load() {
+        try {
+            const metaRes = await fetch('model/metadata.json');
+            if (metaRes.ok) {
+                const meta = await metaRes.json();
+                if (meta.names) this.classNames = meta.names;
+                if (meta.imgsz) this.imgsz = meta.imgsz;
+            }
+            this.model = await tf.loadGraphModel('model/model.json');
+            return true;
+        } catch (err) {
+            console.log('No custom model found (model/model.json) — will use COCO-SSD:', err.message);
+            return false;
+        }
+    },
+
+    async detect(frame) {
+        const srcW = frame.videoWidth || frame.width;
+        const srcH = frame.videoHeight || frame.height;
+
+        const input = tf.tidy(() => tf.browser.fromPixels(frame)
+            .resizeBilinear([this.imgsz, this.imgsz])
+            .div(255.0)
+            .expandDims(0));
+
+        let output = await this.model.executeAsync(input);
+        input.dispose();
+        if (Array.isArray(output)) output = output[0];
+
+        const { boxesXYXY, scores, classIds } = tf.tidy(() => {
+            // YOLOv8 output: [1, 4 + numClasses, numAnchors] -> [numAnchors, 4 + numClasses]
+            const transposed = output.transpose([0, 2, 1]).squeeze([0]);
+            const numClasses = this.classNames.length;
+            const boxesXYWH = transposed.slice([0, 0], [-1, 4]);
+            const classScores = transposed.slice([0, 4], [-1, numClasses]);
+
+            const x = boxesXYWH.slice([0, 0], [-1, 1]);
+            const y = boxesXYWH.slice([0, 1], [-1, 1]);
+            const w = boxesXYWH.slice([0, 2], [-1, 1]);
+            const h = boxesXYWH.slice([0, 3], [-1, 1]);
+
+            return {
+                boxesXYXY: tf.concat([
+                    y.sub(h.div(2)), x.sub(w.div(2)),
+                    y.add(h.div(2)), x.add(w.div(2))
+                ], 1),
+                scores: classScores.max(1),
+                classIds: classScores.argMax(1)
+            };
+        });
+
+        const nmsIndices = await tf.image.nonMaxSuppressionAsync(
+            boxesXYXY, scores, 50, this.iouThreshold, this.scoreThreshold
+        );
+
+        const [boxesData, scoresData, classIdsData, keepIndices] = await Promise.all([
+            boxesXYXY.array(), scores.array(), classIds.array(), nmsIndices.array()
+        ]);
+
+        const scaleX = srcW / this.imgsz;
+        const scaleY = srcH / this.imgsz;
+
+        const detections = keepIndices.map(i => {
+            const [y1, x1, y2, x2] = boxesData[i];
+            return {
+                className: this.classNames[classIdsData[i]] || 'plant',
+                confidence: (scoresData[i] * 100).toFixed(1),
+                boundingBox: {
+                    x: x1 * scaleX,
+                    y: y1 * scaleY,
+                    width: (x2 - x1) * scaleX,
+                    height: (y2 - y1) * scaleY
+                }
+            };
+        });
+
+        tf.dispose([output, boxesXYXY, scores, classIds, nmsIndices]);
+        return detections;
+    }
+};
+
 const DetectionEngine = {
     mode: 'real', // 'real' or 'simulation'
+    engineType: null, // 'custom' or 'coco-ssd'
     model: null,
     isLoading: false,
     isReady: false,
@@ -135,11 +237,19 @@ const DetectionEngine = {
     async init() {
         this.isLoading = true;
         try {
-            // Load COCO-SSD model for plant detection
+            if (typeof tf !== 'undefined' && await CustomModel.load()) {
+                this.engineType = 'custom';
+                this.isReady = true;
+                console.log('Custom plant detector loaded successfully');
+                return true;
+            }
+
+            // Fall back to the generic COCO-SSD model
             if (typeof cocoSsd === 'undefined') {
                 throw new Error('TensorFlow.js models not loaded');
             }
             this.model = await cocoSsd.load();
+            this.engineType = 'coco-ssd';
             this.isReady = true;
             console.log('Detection model loaded successfully');
             return true;
@@ -165,11 +275,26 @@ const DetectionEngine = {
     },
 
     async realDetection(frame) {
-        if (!this.isReady || !this.model) {
+        if (!this.isReady) {
             return [];
         }
 
         const startTime = performance.now();
+
+        if (this.engineType === 'custom') {
+            try {
+                const results = await CustomModel.detect(frame);
+                this.inferenceTime = performance.now() - startTime;
+                return results;
+            } catch (err) {
+                console.error('Detection error:', err);
+                return [];
+            }
+        }
+
+        if (!this.model) {
+            return [];
+        }
 
         try {
             // Use COCO-SSD for plant detection
@@ -551,7 +676,8 @@ const UIManager = {
         document.getElementById('modeStatus').textContent = this.state.simulationMode ? 'SIMULATION' : 'LIVE';
         document.getElementById('modeStatus').className = this.state.simulationMode ? 'status-badge simulation' : 'status-badge';
 
-        document.getElementById('modelValue').textContent = this.state.simulationMode ? 'MOCK' : (this.state.modelReady ? 'COCO-SSD' : '--');
+        const modelLabel = DetectionEngine.engineType === 'custom' ? 'CUSTOM' : 'COCO-SSD';
+        document.getElementById('modelValue').textContent = this.state.simulationMode ? 'MOCK' : (this.state.modelReady ? modelLabel : '--');
     },
 
     updateDetectionUI() {
@@ -610,7 +736,12 @@ const UIManager = {
 
     showError(message) {
         console.error(message);
-        alert(message);
+        // A blocking alert() would freeze the whole tab (including any
+        // automated/devtools session watching it) until manually dismissed —
+        // show the error inline in the camera overlay instead.
+        this.showOverlay(message);
+        const spinner = document.querySelector('#cameraOverlay .spinner');
+        if (spinner) spinner.style.display = 'none';
     }
 };
 
